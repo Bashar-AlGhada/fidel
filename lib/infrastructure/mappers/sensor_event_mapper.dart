@@ -40,11 +40,7 @@ class SensorEventMapper {
               ? DateTime.fromMillisecondsSinceEpoch(timestampMs.toInt())
               : DateTime.now());
 
-    final list = values is List ? values : const [];
-    final parsedValues = list
-        .whereType<num>()
-        .map((v) => v.toDouble())
-        .toList(growable: false);
+    final parsedValues = _parseValues(values);
 
     return SensorReadingEntity(
       timestamp: ts,
@@ -71,5 +67,20 @@ class SensorEventMapper {
       3 => SensorAccuracy.high,
       _ => null,
     };
+  }
+
+  List<double> _parseValues(Object? raw) {
+    final list = raw is List ? raw : const [];
+    final out = <double>[];
+    for (final entry in list) {
+      final v = switch (entry) {
+        num n => n.toDouble(),
+        String s => double.tryParse(s),
+        _ => null,
+      };
+      if (v == null || v.isNaN || v.isInfinite) continue;
+      out.add(v);
+    }
+    return out.toList(growable: false);
   }
 }

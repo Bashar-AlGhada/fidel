@@ -9,7 +9,7 @@ import '../../features/sections/presentation/sensors_section_page.dart';
 import '../../features/sections/presentation/sections_page.dart';
 import '../../features/sections/sections_registry.dart';
 import '../../features/settings/presentation/settings_page.dart';
-import 'bottom_nav_shell.dart';
+import 'app_nav_shell.dart';
 
 GoRouter buildRouter() {
   return GoRouter(
@@ -19,27 +19,29 @@ GoRouter buildRouter() {
           final location = state.uri.toString();
           final index = switch (location) {
             '/' => 0,
-            String() when location.startsWith('/sections') => 0,
-            '/memory' => 1,
-            '/battery' => 2,
-            '/cpu' => 3,
-            '/settings' => 4,
+            String() when location.startsWith('/sections') => 1,
+            '/memory' => 2,
+            '/battery' => 3,
+            '/cpu' => 4,
+            '/settings' => 5,
             _ => 0,
           };
 
-          return BottomNavShell(
+          return AppNavShell(
             currentIndex: index,
             onTap: (i) {
               switch (i) {
                 case 0:
                   context.go('/');
                 case 1:
-                  context.go('/memory');
+                  context.go('/sections');
                 case 2:
-                  context.go('/battery');
+                  context.go('/memory');
                 case 3:
-                  context.go('/cpu');
+                  context.go('/battery');
                 case 4:
+                  context.go('/cpu');
+                case 5:
                   context.go('/settings');
               }
             },

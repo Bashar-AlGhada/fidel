@@ -11,6 +11,9 @@ class AppTranslations extends Translations {
       'nav.settings': 'Settings',
       'nav.sections': 'Sections',
       'dashboard.browseSections': 'Browse detailed sections',
+      'dashboard.liveTitle': 'Live',
+      'dashboard.liveSubtitle': 'Key system signals and status',
+      'dashboard.exploreTitle': 'Explore',
 
       'settings.theme': 'Theme',
       'settings.language': 'Language',
@@ -43,6 +46,7 @@ class AppTranslations extends Translations {
       'search.hintCameras': 'Search cameras',
       'search.hintCodecs': 'Search codecs',
       'search.hintSensors': 'Search sensors',
+      'search.hintSections': 'Search sections',
       'search.noResults': 'No results',
 
       'filter.all': 'All',
@@ -71,6 +75,11 @@ class AppTranslations extends Translations {
       'sensor.power': 'Power',
       'sensor.minDelay': 'Min delay',
       'sensor.notEnoughSamples': 'Not enough samples yet.',
+      'sensor.notEnoughSamplesHint': 'Keep this screen open to collect samples.',
+      'sensor.noData': 'No data',
+      'sensor.noDataHint': 'Waiting for sensor readings.',
+      'sensor.invalidData': 'Invalid sensor data',
+      'sensor.invalidDataHint': 'Received unreadable values. Try again.',
 
       'memory.used': 'Used: @value',
       'memory.available': 'Available: @value',
@@ -164,6 +173,8 @@ class AppTranslations extends Translations {
       'thermal.thermalStatus': 'Thermal status',
       'thermal.temperatures': 'Temperatures',
 
+      'action.retry': 'Retry',
+      'action.open': 'Open',
       'action.cancel': 'Cancel',
     },
     'de_DE': {
@@ -174,6 +185,9 @@ class AppTranslations extends Translations {
       'nav.settings': 'Einstellungen',
       'nav.sections': 'Bereiche',
       'dashboard.browseSections': 'Detaillierte Bereiche anzeigen',
+      'dashboard.liveTitle': 'Live',
+      'dashboard.liveSubtitle': 'Wichtige Systemsignale und Status',
+      'dashboard.exploreTitle': 'Entdecken',
 
       'settings.theme': 'Design',
       'settings.language': 'Sprache',
@@ -207,6 +221,7 @@ class AppTranslations extends Translations {
       'search.hintCameras': 'Kameras suchen',
       'search.hintCodecs': 'Codecs suchen',
       'search.hintSensors': 'Sensoren suchen',
+      'search.hintSections': 'Bereiche durchsuchen',
       'search.noResults': 'Keine Ergebnisse',
 
       'filter.all': 'Alle',
@@ -235,6 +250,13 @@ class AppTranslations extends Translations {
       'sensor.power': 'Leistung',
       'sensor.minDelay': 'Min. Verzögerung',
       'sensor.notEnoughSamples': 'Noch nicht genug Samples.',
+      'sensor.notEnoughSamplesHint':
+          'Lassen Sie diesen Bildschirm geöffnet, um Samples zu sammeln.',
+      'sensor.noData': 'Keine Daten',
+      'sensor.noDataHint': 'Warten auf Sensorwerte.',
+      'sensor.invalidData': 'Ungültige Sensordaten',
+      'sensor.invalidDataHint':
+          'Unlesbare Werte empfangen. Versuchen Sie es erneut.',
 
       'memory.used': 'Belegt: @value',
       'memory.available': 'Verfügbar: @value',
@@ -328,6 +350,8 @@ class AppTranslations extends Translations {
       'thermal.thermalStatus': 'Thermikstatus',
       'thermal.temperatures': 'Temperaturen',
 
+      'action.retry': 'Erneut versuchen',
+      'action.open': 'Öffnen',
       'action.cancel': 'Abbrechen',
     },
     'fr_FR': {
@@ -338,6 +362,9 @@ class AppTranslations extends Translations {
       'nav.settings': 'Paramètres',
       'nav.sections': 'Sections',
       'dashboard.browseSections': 'Parcourir les sections détaillées',
+      'dashboard.liveTitle': 'Live',
+      'dashboard.liveSubtitle': 'Signaux système et état',
+      'dashboard.exploreTitle': 'Explorer',
 
       'settings.theme': 'Thème',
       'settings.language': 'Langue',
@@ -370,6 +397,7 @@ class AppTranslations extends Translations {
       'search.hintCameras': 'Rechercher des caméras',
       'search.hintCodecs': 'Rechercher des codecs',
       'search.hintSensors': 'Rechercher des capteurs',
+      'search.hintSections': 'Rechercher des sections',
       'search.noResults': 'Aucun résultat',
 
       'filter.all': 'Tous',
@@ -398,6 +426,12 @@ class AppTranslations extends Translations {
       'sensor.power': 'Puissance',
       'sensor.minDelay': 'Délai min',
       'sensor.notEnoughSamples': 'Pas assez d’échantillons.',
+      'sensor.notEnoughSamplesHint':
+          'Gardez cet écran ouvert pour collecter des échantillons.',
+      'sensor.noData': 'Aucune donnée',
+      'sensor.noDataHint': 'En attente de valeurs du capteur.',
+      'sensor.invalidData': 'Données capteur invalides',
+      'sensor.invalidDataHint': 'Valeurs illisibles reçues. Réessayez.',
 
       'memory.used': 'Utilisé : @value',
       'memory.available': 'Disponible : @value',
@@ -491,6 +525,8 @@ class AppTranslations extends Translations {
       'thermal.thermalStatus': 'Statut thermique',
       'thermal.temperatures': 'Températures',
 
+      'action.retry': 'Réessayer',
+      'action.open': 'Ouvrir',
       'action.cancel': 'Annuler',
     },
     'es_ES': {
@@ -501,6 +537,9 @@ class AppTranslations extends Translations {
       'nav.settings': 'Ajustes',
       'nav.sections': 'Secciones',
       'dashboard.browseSections': 'Ver secciones detalladas',
+      'dashboard.liveTitle': 'En vivo',
+      'dashboard.liveSubtitle': 'Señales y estado del sistema',
+      'dashboard.exploreTitle': 'Explorar',
 
       'settings.theme': 'Tema',
       'settings.language': 'Idioma',
@@ -534,6 +573,7 @@ class AppTranslations extends Translations {
       'search.hintCameras': 'Buscar cámaras',
       'search.hintCodecs': 'Buscar códecs',
       'search.hintSensors': 'Buscar sensores',
+      'search.hintSections': 'Buscar secciones',
       'search.noResults': 'Sin resultados',
 
       'filter.all': 'Todos',
@@ -562,6 +602,13 @@ class AppTranslations extends Translations {
       'sensor.power': 'Potencia',
       'sensor.minDelay': 'Retardo mín',
       'sensor.notEnoughSamples': 'Aún no hay suficientes muestras.',
+      'sensor.notEnoughSamplesHint':
+          'Mantén esta pantalla abierta para recopilar muestras.',
+      'sensor.noData': 'Sin datos',
+      'sensor.noDataHint': 'Esperando lecturas del sensor.',
+      'sensor.invalidData': 'Datos de sensor no válidos',
+      'sensor.invalidDataHint':
+          'Se recibieron valores ilegibles. Intenta de nuevo.',
 
       'memory.used': 'Usado: @value',
       'memory.available': 'Disponible: @value',
@@ -655,6 +702,8 @@ class AppTranslations extends Translations {
       'thermal.thermalStatus': 'Estado térmico',
       'thermal.temperatures': 'Temperaturas',
 
+      'action.retry': 'Reintentar',
+      'action.open': 'Abrir',
       'action.cancel': 'Cancelar',
     },
     'ar': {
@@ -665,6 +714,9 @@ class AppTranslations extends Translations {
       'nav.settings': 'الإعدادات',
       'nav.sections': 'الأقسام',
       'dashboard.browseSections': 'تصفح الأقسام التفصيلية',
+      'dashboard.liveTitle': 'مباشر',
+      'dashboard.liveSubtitle': 'إشارات النظام الأساسية والحالة',
+      'dashboard.exploreTitle': 'استكشاف',
 
       'settings.theme': 'المظهر',
       'settings.language': 'اللغة',
@@ -697,6 +749,7 @@ class AppTranslations extends Translations {
       'search.hintCameras': 'ابحث في الكاميرات',
       'search.hintCodecs': 'ابحث في الترميزات',
       'search.hintSensors': 'ابحث في الحساسات',
+      'search.hintSections': 'ابحث في الأقسام',
       'search.noResults': 'لا توجد نتائج',
 
       'filter.all': 'الكل',
@@ -725,6 +778,11 @@ class AppTranslations extends Translations {
       'sensor.power': 'الطاقة',
       'sensor.minDelay': 'أقل تأخير',
       'sensor.notEnoughSamples': 'لا توجد عينات كافية بعد.',
+      'sensor.notEnoughSamplesHint': 'أبقِ هذه الشاشة مفتوحة لجمع عينات.',
+      'sensor.noData': 'لا توجد بيانات',
+      'sensor.noDataHint': 'بانتظار قراءات الحساس.',
+      'sensor.invalidData': 'بيانات حساس غير صالحة',
+      'sensor.invalidDataHint': 'تم استلام قيم غير قابلة للقراءة. حاول مرة أخرى.',
 
       'memory.used': 'المستخدم: @value',
       'memory.available': 'المتاح: @value',
@@ -818,6 +876,8 @@ class AppTranslations extends Translations {
       'thermal.thermalStatus': 'حالة الحرارة',
       'thermal.temperatures': 'درجات الحرارة',
 
+      'action.retry': 'إعادة المحاولة',
+      'action.open': 'فتح',
       'action.cancel': 'إلغاء',
     },
   };

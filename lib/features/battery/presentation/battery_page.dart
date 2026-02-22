@@ -5,6 +5,9 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../application/providers/system_providers.dart';
 import '../../../application/sampling/active_module.dart';
 import '../../../application/sampling/sampling_provider.dart';
+import '../../../core/routing/app_nav_shell.dart';
+import '../../../core/theme/theme_tokens.dart';
+import '../../../core/ui/app_states.dart';
 
 class BatteryPage extends ConsumerWidget {
   const BatteryPage({super.key});
@@ -18,23 +21,38 @@ class BatteryPage extends ConsumerWidget {
       });
     }
     final bat = ref.watch(batteryStreamProvider);
+    final shell = AppNavShellScope.maybeOf(context);
+    final showMenu = shell?.hasDrawer == true && !Navigator.of(context).canPop();
+    final tokens = Theme.of(context).extension<ThemeTokensExtension>()!.tokens;
 
     return Scaffold(
-      appBar: AppBar(title: Text('nav.battery'.tr)),
+      appBar: AppBar(
+        leading: showMenu
+            ? IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: shell?.openDrawer,
+              )
+            : null,
+        title: Text('nav.battery'.tr),
+      ),
       body: bat.when(
         data: (b) {
           final pct = b.percent.clamp(0, 100);
           return ListView(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(tokens.space3),
             children: [
               Text('$pct%', style: Theme.of(context).textTheme.displaySmall),
-              const SizedBox(height: 12),
+              SizedBox(height: tokens.space3),
               RepaintBoundary(child: LinearProgressIndicator(value: pct / 100)),
             ],
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, st) => const Center(child: Text('Unavailable')),
+        loading: () => const AppLoadingState(),
+        error: (err, st) => AppErrorState(
+          title: 'availability.unavailable'.tr,
+          actionLabel: 'action.retry'.tr,
+          onAction: () => ref.invalidate(batteryStreamProvider),
+        ),
       ),
     );
   }

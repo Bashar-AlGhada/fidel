@@ -21,11 +21,11 @@ class ThermalSectionPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final activeModule = ref.watch(activeModuleProvider);
-    if (activeModule != ActiveModule.dashboard) {
+    if (activeModule != ActiveModule.sections) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ref
             .read(activeModuleProvider.notifier)
-            .setModule(ActiveModule.dashboard);
+            .setModule(ActiveModule.sections);
       });
     }
 

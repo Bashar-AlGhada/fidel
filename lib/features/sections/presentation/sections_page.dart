@@ -6,46 +6,121 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../application/providers/system_providers.dart';
 import '../../../application/sampling/active_module.dart';
 import '../../../application/sampling/sampling_provider.dart';
+import '../../../core/routing/app_nav_shell.dart';
+import '../../../core/theme/theme_tokens.dart';
+import '../../../core/ui/app_card.dart';
 import '../sections_registry.dart';
 
-class SectionsPage extends ConsumerWidget {
+class SectionsPage extends ConsumerStatefulWidget {
   const SectionsPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SectionsPage> createState() => _SectionsPageState();
+}
+
+class _SectionsPageState extends ConsumerState<SectionsPage> {
+  String _query = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final ref = this.ref;
     final activeModule = ref.watch(activeModuleProvider);
-    if (activeModule != ActiveModule.dashboard) {
+    if (activeModule != ActiveModule.sections) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref
-            .read(activeModuleProvider.notifier)
-            .setModule(ActiveModule.dashboard);
+        ref.read(activeModuleProvider.notifier).setModule(ActiveModule.sections);
       });
     }
 
-    return Scaffold(
-      appBar: AppBar(title: Text('nav.sections'.tr)),
-      body: ListView.separated(
-        padding: const EdgeInsets.all(16),
-        itemCount: sectionDefinitions.length,
-        separatorBuilder: (context, index) => const SizedBox(height: 12),
-        itemBuilder: (context, index) {
-          final section = sectionDefinitions[index];
-          final meta = ref.watch(sectionMetadataStreamProvider(section.id));
+    final theme = Theme.of(context);
+    final tokens = theme.extension<ThemeTokensExtension>()!.tokens;
+    final shell = AppNavShellScope.maybeOf(context);
+    final showMenu = shell?.hasDrawer == true && !Navigator.of(context).canPop();
 
-          return Card(
-            child: ListTile(
-              leading: Icon(section.icon),
-              title: Text(section.titleKey.tr),
-              subtitle: meta.when(
-                data: (v) => Text('availability.${v.availability.name}'.tr),
-                loading: () => Text('availability.loading'.tr),
-                error: (err, st) => Text('availability.unavailable'.tr),
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.go('/sections/${section.pathSegment}'),
+    final query = _query.trim().toLowerCase();
+    final sections = query.isEmpty
+        ? sectionDefinitions
+        : sectionDefinitions
+              .where((s) {
+                final title = s.titleKey.tr.toLowerCase();
+                return title.contains(query) || s.id.contains(query);
+              })
+              .toList(growable: false);
+
+    return Scaffold(
+      appBar: AppBar(
+        leading: showMenu ? IconButton(icon: const Icon(Icons.menu), onPressed: shell?.openDrawer) : null,
+        title: Text('nav.sections'.tr),
+      ),
+      body: Padding(
+        padding: EdgeInsets.all(tokens.space3),
+        child: Column(
+          children: [
+            SearchBar(
+              hintText: 'search.hintSections'.tr,
+              onChanged: (v) => setState(() => _query = v),
+              trailing: [if (_query.isNotEmpty) IconButton(icon: const Icon(Icons.close), onPressed: () => setState(() => _query = ''))],
             ),
-          );
-        },
+            SizedBox(height: tokens.space3),
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final width = constraints.maxWidth;
+                  final columns = width >= 1100
+                      ? 3
+                      : width >= 700
+                      ? 2
+                      : 1;
+
+                  return GridView.builder(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: columns,
+                      crossAxisSpacing: tokens.space3,
+                      mainAxisSpacing: tokens.space3,
+                      childAspectRatio: columns == 1 ? 3.2 : 2.6,
+                    ),
+                    itemCount: sections.length,
+                    itemBuilder: (context, index) {
+                      final section = sections[index];
+                      final meta = ref.watch(sectionMetadataStreamProvider(section.id));
+                      final subtitle = meta.when(
+                        data: (v) => 'availability.${v.availability.name}'.tr,
+                        loading: () => 'availability.loading'.tr,
+                        error: (err, st) => 'availability.unavailable'.tr,
+                      );
+
+                      return AppCard(
+                        onTap: () => context.go('/sections/${section.pathSegment}'),
+                        child: Row(
+                          children: [
+                            Icon(section.icon, color: theme.colorScheme.primary),
+                            SizedBox(width: tokens.space3),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(section.titleKey.tr, style: theme.textTheme.titleMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
+                                  SizedBox(height: tokens.space1),
+                                  Text(
+                                    subtitle,
+                                    style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.chevron_right),
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

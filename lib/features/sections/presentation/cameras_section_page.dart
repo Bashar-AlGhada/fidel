@@ -28,11 +28,11 @@ class _CamerasSectionPageState extends ConsumerState<CamerasSectionPage> {
   @override
   Widget build(BuildContext context) {
     final activeModule = ref.watch(activeModuleProvider);
-    if (activeModule != ActiveModule.dashboard) {
+    if (activeModule != ActiveModule.sections) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ref
             .read(activeModuleProvider.notifier)
-            .setModule(ActiveModule.dashboard);
+            .setModule(ActiveModule.sections);
       });
     }
 

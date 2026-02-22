@@ -7,6 +7,8 @@ import '../../../application/providers/export_providers.dart';
 import '../../../application/providers/system_providers.dart';
 import '../../../application/sampling/active_module.dart';
 import '../../../application/sampling/sampling_provider.dart';
+import '../../../core/theme/theme_tokens.dart';
+import '../../../core/ui/app_states.dart';
 import '../../../domain/entities/sensors/sensor_entity.dart';
 import '../../../features/export/presentation/export_format_sheet.dart';
 
@@ -25,37 +27,26 @@ class _SensorsSectionPageState extends ConsumerState<SensorsSectionPage> {
   @override
   Widget build(BuildContext context) {
     final activeModule = ref.watch(activeModuleProvider);
-    if (activeModule != ActiveModule.dashboard) {
+    if (activeModule != ActiveModule.sensors) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref
-            .read(activeModuleProvider.notifier)
-            .setModule(ActiveModule.dashboard);
+        ref.read(activeModuleProvider.notifier).setModule(ActiveModule.sensors);
       });
     }
 
-    final sensorsAsync = ref.watch(
-      sensorsStreamProvider((
-        samplingPeriodUs: _samplingPeriodUs,
-        maxSamples: _maxSamples,
-      )),
-    );
+    final sensorsAsync = ref.watch(sensorsStreamProvider((samplingPeriodUs: _samplingPeriodUs, maxSamples: _maxSamples)));
+
+    final tokens = Theme.of(context).extension<ThemeTokensExtension>()!.tokens;
 
     return Scaffold(
       appBar: AppBar(
         title: Text('section.sensors'.tr),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.upload_file),
-            onPressed: () =>
-                _exportSensors(context, sensorsAsync.asData?.value),
-          ),
-        ],
+        actions: [IconButton(icon: const Icon(Icons.upload_file), onPressed: () => _exportSensors(context, sensorsAsync.asData?.value))],
       ),
       body: sensorsAsync.when(
         data: (sensors) {
           final filtered = _filterSensors(sensors, _query);
           return ListView(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(tokens.space3),
             children: [
               _ControlsCard(
                 samplingPeriodUs: _samplingPeriodUs,
@@ -63,38 +54,29 @@ class _SensorsSectionPageState extends ConsumerState<SensorsSectionPage> {
                 onSamplingChanged: (v) => setState(() => _samplingPeriodUs = v),
                 onMaxSamplesChanged: (v) => setState(() => _maxSamples = v),
               ),
-              const SizedBox(height: 12),
-              TextField(
-                decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.search),
-                  hintText: 'search.hintSensors'.tr,
-                  border: const OutlineInputBorder(),
-                ),
+              SizedBox(height: tokens.space3),
+              SearchBar(
+                hintText: 'search.hintSensors'.tr,
                 onChanged: (v) => setState(() => _query = v),
+                trailing: [if (_query.isNotEmpty) IconButton(icon: const Icon(Icons.close), onPressed: () => setState(() => _query = ''))],
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: tokens.space3),
               if (sensors.isEmpty && _query.trim().isEmpty)
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text('sensors.noSensors'.tr),
-                  ),
+                AppEmptyState(
+                  title: 'sensors.noSensors'.tr,
+                  message: 'sensor.noDataHint'.tr,
+                  icon: Icons.sensors_off_outlined,
+                  actionLabel: 'action.retry'.tr,
+                  onAction: () => ref.invalidate(sensorsStreamProvider((samplingPeriodUs: _samplingPeriodUs, maxSamples: _maxSamples))),
                 )
               else if (filtered.isEmpty)
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text('search.noResults'.tr),
-                  ),
-                )
+                AppEmptyState(title: 'search.noResults'.tr, icon: Icons.search_off_outlined)
               else
                 ...filtered.map(
                   (sensor) => _SensorTile(
                     sensor: sensor,
                     onTap: () {
-                      final encoded = Uri.encodeComponent(
-                        sensor.capability.key,
-                      );
+                      final encoded = Uri.encodeComponent(sensor.capability.key);
                       context.go('/sections/sensors/$encoded');
                     },
                   ),
@@ -102,28 +84,25 @@ class _SensorsSectionPageState extends ConsumerState<SensorsSectionPage> {
             ],
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, st) => Center(child: Text('availability.unavailable'.tr)),
+        loading: () => const AppLoadingState(),
+        error: (err, st) => AppErrorState(
+          title: 'availability.unavailable'.tr,
+          actionLabel: 'action.retry'.tr,
+          onAction: () => ref.invalidate(sensorsStreamProvider((samplingPeriodUs: _samplingPeriodUs, maxSamples: _maxSamples))),
+        ),
       ),
     );
   }
 
-  Future<void> _exportSensors(
-    BuildContext context,
-    List<SensorEntity>? sensors,
-  ) async {
+  Future<void> _exportSensors(BuildContext context, List<SensorEntity>? sensors) async {
     if (sensors == null || sensors.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('availability.unavailable'.tr)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('availability.unavailable'.tr)));
       return;
     }
 
     final filtered = _filterSensors(sensors, _query);
     if (filtered.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('search.noResults'.tr)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('search.noResults'.tr)));
       return;
     }
 
@@ -131,11 +110,7 @@ class _SensorsSectionPageState extends ConsumerState<SensorsSectionPage> {
     if (format == null) return;
 
     final service = ref.read(exportServiceProvider);
-    final file = await service.exportSensors(
-      filtered,
-      format: format,
-      fileBaseName: 'fidel-sensors',
-    );
+    final file = await service.exportSensors(filtered, format: format, fileBaseName: 'fidel-sensors');
     await service.share(file);
   }
 
@@ -145,8 +120,7 @@ class _SensorsSectionPageState extends ConsumerState<SensorsSectionPage> {
     return sensors
         .where((s) {
           final cap = s.capability;
-          final text = '${cap.name} ${cap.vendor} ${cap.type} ${cap.key}'
-              .toLowerCase();
+          final text = '${cap.name} ${cap.vendor} ${cap.type} ${cap.key}'.toLowerCase();
           return text.contains(q);
         })
         .toList(growable: false);
@@ -154,12 +128,7 @@ class _SensorsSectionPageState extends ConsumerState<SensorsSectionPage> {
 }
 
 class _ControlsCard extends StatelessWidget {
-  const _ControlsCard({
-    required this.samplingPeriodUs,
-    required this.maxSamples,
-    required this.onSamplingChanged,
-    required this.onMaxSamplesChanged,
-  });
+  const _ControlsCard({required this.samplingPeriodUs, required this.maxSamples, required this.onSamplingChanged, required this.onMaxSamplesChanged});
 
   final int samplingPeriodUs;
   final int maxSamples;
@@ -174,10 +143,7 @@ class _ControlsCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'sensors.controls'.tr,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
+            Text('sensors.controls'.tr, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 12),
             Row(
               children: [
@@ -227,9 +193,7 @@ class _SensorTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cap = sensor.capability;
-    final latest = sensor.samples.samples.isEmpty
-        ? null
-        : sensor.samples.samples.last;
+    final latest = sensor.samples.samples.isEmpty ? null : sensor.samples.samples.last;
     final latestText = latest == null || latest.values.isEmpty
         ? 'availability.unavailable'.tr
         : latest.values.map((v) => v.toStringAsFixed(2)).join(', ');

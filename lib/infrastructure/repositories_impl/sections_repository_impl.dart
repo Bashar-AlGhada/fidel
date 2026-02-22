@@ -39,12 +39,17 @@ class SectionsRepositoryImpl implements SectionsRepository {
 
   BehaviorSubject<List<SensorEntity>>? _sensorsSubject;
   StreamSubscription<Map<String, dynamic>>? _sensorsSub;
+  int _sensorsListenerCount = 0;
+  Timer? _sensorsEmitTimer;
+  bool _sensorsEmitScheduled = false;
   bool _diskSeededSensors = false;
   DateTime? _lastSensorsPersistAt;
 
   final Map<String, SensorCapabilityEntity> _sensorCapabilitiesByKey = {};
   final Map<String, BoundedSampleWindow<SensorReadingEntity>>
   _sensorSamplesByKey = {};
+  List<String> _sortedSensorKeys = const [];
+  bool _sortedSensorKeysDirty = true;
   int _sensorMaxSamples = 128;
   int _sensorSamplingPeriodUs = 200000;
 
@@ -171,15 +176,25 @@ class SectionsRepositoryImpl implements SectionsRepository {
       _sensorSamplingPeriodUs = normalizedSampling;
       unawaited(_sensorsSub?.cancel());
       _sensorsSub = null;
+      if (_sensorsListenerCount > 0) {
+        _ensureSensorsFeed();
+      }
     }
 
     _sensorsSubject ??= BehaviorSubject<List<SensorEntity>>.seeded(
       _buildSensorsSnapshot(),
     );
     unawaited(_seedSensorsFromDisk());
-    _ensureSensorsFeed();
-
-    return _sensorsSubject!.stream;
+    return _sensorsSubject!.stream.doOnListen(() {
+      _sensorsListenerCount += 1;
+      _ensureSensorsFeed();
+    }).doOnCancel(() {
+      _sensorsListenerCount -= 1;
+      if (_sensorsListenerCount <= 0) {
+        _sensorsListenerCount = 0;
+        _stopSensorsFeed();
+      }
+    });
   }
 
   void _ensureThermalFeed(BehaviorSubject<InfoSectionEntity> subject) {
@@ -211,11 +226,11 @@ class SectionsRepositoryImpl implements SectionsRepository {
           switch (kind) {
             case 'capabilities':
               _handleSensorCapabilities(data);
-              _emitSensors();
+              _scheduleEmitSensors();
               break;
             case 'reading':
               _handleSensorReading(data);
-              _emitSensors();
+              _scheduleEmitSensors();
               break;
             case 'accuracy':
               break;
@@ -223,6 +238,14 @@ class SectionsRepositoryImpl implements SectionsRepository {
               break;
           }
         });
+  }
+
+  void _stopSensorsFeed() {
+    unawaited(_sensorsSub?.cancel());
+    _sensorsSub = null;
+    _sensorsEmitTimer?.cancel();
+    _sensorsEmitTimer = null;
+    _sensorsEmitScheduled = false;
   }
 
   void _handleSensorCapabilities(Map<String, dynamic> data) {
@@ -244,6 +267,7 @@ class SectionsRepositoryImpl implements SectionsRepository {
         ),
       );
     }
+    _sortedSensorKeysDirty = true;
     _persistSensorsIfNeeded(force: true);
   }
 
@@ -254,6 +278,7 @@ class SectionsRepositoryImpl implements SectionsRepository {
     final reading = _sensorEventMapper.readingFromMap(data);
     if (reading == null) return;
 
+    final wasKnownKey = _sensorSamplesByKey.containsKey(key);
     final existing = _sensorSamplesByKey[key];
     final next =
         (existing ??
@@ -265,6 +290,7 @@ class SectionsRepositoryImpl implements SectionsRepository {
 
     _sensorSamplesByKey[key] = next;
 
+    final hadCapability = _sensorCapabilitiesByKey.containsKey(key);
     _sensorCapabilitiesByKey.putIfAbsent(
       key,
       () => SensorCapabilityEntity(
@@ -280,33 +306,48 @@ class SectionsRepositoryImpl implements SectionsRepository {
         minDelay: Duration.zero,
       ),
     );
+    if (!wasKnownKey || !hadCapability) {
+      _sortedSensorKeysDirty = true;
+    }
     _persistSensorsIfNeeded();
   }
 
-  void _emitSensors() {
-    _sensorsSubject?.add(_buildSensorsSnapshot());
+  void _scheduleEmitSensors() {
+    if (_sensorsSubject == null) return;
+    if (_sensorsEmitScheduled) return;
+    _sensorsEmitScheduled = true;
+    _sensorsEmitTimer?.cancel();
+    _sensorsEmitTimer = Timer(const Duration(milliseconds: 50), () {
+      _sensorsEmitScheduled = false;
+      _sensorsSubject?.add(_buildSensorsSnapshot());
+    });
   }
 
   List<SensorEntity> _buildSensorsSnapshot() {
-    final keys = <String>{
-      ..._sensorCapabilitiesByKey.keys,
-      ..._sensorSamplesByKey.keys,
-    }.toList(growable: false);
+    if (_sortedSensorKeysDirty) {
+      final keys = <String>{
+        ..._sensorCapabilitiesByKey.keys,
+        ..._sensorSamplesByKey.keys,
+      }.toList(growable: false);
 
-    keys.sort((a, b) {
-      final ca = _sensorCapabilitiesByKey[a];
-      final cb = _sensorCapabilitiesByKey[b];
-      final ta = ca?.type ?? 0;
-      final tb = cb?.type ?? 0;
-      if (ta != tb) return ta.compareTo(tb);
-      final na = ca?.name ?? '';
-      final nb = cb?.name ?? '';
-      final nameCmp = na.compareTo(nb);
-      if (nameCmp != 0) return nameCmp;
-      return a.compareTo(b);
-    });
+      keys.sort((a, b) {
+        final ca = _sensorCapabilitiesByKey[a];
+        final cb = _sensorCapabilitiesByKey[b];
+        final ta = ca?.type ?? 0;
+        final tb = cb?.type ?? 0;
+        if (ta != tb) return ta.compareTo(tb);
+        final na = ca?.name ?? '';
+        final nb = cb?.name ?? '';
+        final nameCmp = na.compareTo(nb);
+        if (nameCmp != 0) return nameCmp;
+        return a.compareTo(b);
+      });
 
-    return keys
+      _sortedSensorKeys = keys;
+      _sortedSensorKeysDirty = false;
+    }
+
+    return _sortedSensorKeys
         .map((key) {
           final cap =
               _sensorCapabilitiesByKey[key] ??
@@ -528,7 +569,8 @@ class SectionsRepositoryImpl implements SectionsRepository {
       }
     }
 
-    _emitSensors();
+    _sortedSensorKeysDirty = true;
+    _sensorsSubject?.add(_buildSensorsSnapshot());
   }
 
   void _persistSensorsIfNeeded({bool force = false}) {

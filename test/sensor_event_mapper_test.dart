@@ -28,7 +28,7 @@ void main() {
 
     final reading = mapper.readingFromMap({
       'timestampMs': 1000,
-      'values': [1, 2.5, 3],
+      'values': [1, '2.5', double.nan, double.infinity, 'bad', 3],
       'accuracy': 3,
     });
 

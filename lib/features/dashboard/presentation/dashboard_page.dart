@@ -10,6 +10,10 @@ import '../../../application/providers/units_providers.dart';
 import '../../../application/providers/system_providers.dart';
 import '../../../application/sampling/active_module.dart';
 import '../../../application/sampling/sampling_provider.dart';
+import '../../../core/routing/app_nav_shell.dart';
+import '../../../core/theme/theme_tokens.dart';
+import '../../../core/ui/app_card.dart';
+import '../../../core/ui/app_section.dart';
 import '../../../domain/entities/info/info_section_entity.dart';
 import '../../../domain/units/unit_preferences.dart';
 import '../../../domain/units/units_formatter.dart';
@@ -38,9 +42,19 @@ class DashboardPage extends ConsumerWidget {
         .watch(unitPreferencesStreamProvider)
         .maybeWhen(data: (p) => p, orElse: () => UnitPreferences.defaults);
     final formatter = ref.watch(unitsFormatterProvider);
+    final theme = Theme.of(context);
+    final tokens = theme.extension<ThemeTokensExtension>()!.tokens;
+    final shell = AppNavShellScope.maybeOf(context);
+    final showMenu = shell?.hasDrawer == true && !Navigator.of(context).canPop();
 
     return Scaffold(
       appBar: AppBar(
+        leading: showMenu
+            ? IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: shell?.openDrawer,
+              )
+            : null,
         title: Text('nav.dashboard'.tr),
         actions: [
           IconButton(
@@ -49,87 +63,104 @@ class DashboardPage extends ConsumerWidget {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Card(
-            child: ListTile(
-              title: Text('nav.cpu'.tr),
-              subtitle: cpu.when(
-                data: (v) => Text('${v.usage.toWholePercent()}% (${v.cores})'),
-                loading: () => const Text('Loading…'),
-                error: (err, st) => const Text('Unavailable'),
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.go('/cpu'),
-            ),
-          ),
-          Card(
-            child: ListTile(
-              title: Text('nav.memory'.tr),
-              subtitle: mem.when(
-                data: (m) => Text('${(m.usedRatio * 100).toStringAsFixed(1)}%'),
-                loading: () => const Text('Loading…'),
-                error: (err, st) => const Text('Unavailable'),
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.go('/memory'),
-            ),
-          ),
-          Card(
-            child: ListTile(
-              title: Text('nav.battery'.tr),
-              subtitle: bat.when(
-                data: (b) => Text('${b.percent}%'),
-                loading: () => const Text('Loading…'),
-                error: (err, st) => const Text('Unavailable'),
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.go('/battery'),
-            ),
-          ),
-          Card(
-            child: ListTile(
-              title: Text('section.thermal'.tr),
-              subtitle: thermal.when(
-                data: (v) => Text(
-                  _thermalSummary(v, prefs: prefs, formatter: formatter) ??
-                      'availability.unavailable'.tr,
-                ),
-                loading: () => Text('availability.loading'.tr),
-                error: (err, st) => Text('availability.unavailable'.tr),
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.go('/sections/thermal'),
-            ),
-          ),
-          Card(
-            child: ListTile(
-              title: Text('nav.sections'.tr),
-              subtitle: Text('dashboard.browseSections'.tr),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.go('/sections'),
-            ),
-          ),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final def in sectionDefinitions)
-                    ActionChip(
-                      avatar: Icon(def.icon, size: 18),
-                      label: Text(def.titleKey.tr),
-                      onPressed: () =>
-                          context.go('/sections/${def.pathSegment}'),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          final columns = width >= 1100
+              ? 3
+              : width >= 700
+              ? 2
+              : 1;
+
+          return ListView(
+            padding: EdgeInsets.all(tokens.space3),
+            children: [
+              AppSection(
+                title: 'dashboard.liveTitle'.tr,
+                subtitle: 'dashboard.liveSubtitle'.tr,
+                child: GridView.count(
+                  crossAxisCount: columns,
+                  crossAxisSpacing: tokens.space3,
+                  mainAxisSpacing: tokens.space3,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  childAspectRatio: columns == 1 ? 3.2 : 2.4,
+                  children: [
+                    _MetricTile(
+                      title: 'nav.cpu'.tr,
+                      icon: Icons.speed,
+                      value: cpu.when(
+                        data: (v) =>
+                            '${v.usage.toWholePercent()}% · ${v.cores} cores',
+                        loading: () => 'availability.loading'.tr,
+                        error: (err, st) => 'availability.unavailable'.tr,
+                      ),
+                      onTap: () => context.go('/cpu'),
                     ),
-                ],
+                    _MetricTile(
+                      title: 'nav.memory'.tr,
+                      icon: Icons.memory,
+                      value: mem.when(
+                        data: (m) =>
+                            '${(m.usedRatio * 100).toStringAsFixed(1)}%',
+                        loading: () => 'availability.loading'.tr,
+                        error: (err, st) => 'availability.unavailable'.tr,
+                      ),
+                      onTap: () => context.go('/memory'),
+                    ),
+                    _MetricTile(
+                      title: 'nav.battery'.tr,
+                      icon: Icons.battery_std,
+                      value: bat.when(
+                        data: (b) => '${b.percent}%',
+                        loading: () => 'availability.loading'.tr,
+                        error: (err, st) => 'availability.unavailable'.tr,
+                      ),
+                      onTap: () => context.go('/battery'),
+                    ),
+                    _MetricTile(
+                      title: 'section.thermal'.tr,
+                      icon: Icons.thermostat,
+                      value: thermal.when(
+                        data: (v) =>
+                            _thermalSummary(v, prefs: prefs, formatter: formatter) ??
+                            'availability.unavailable'.tr,
+                        loading: () => 'availability.loading'.tr,
+                        error: (err, st) => 'availability.unavailable'.tr,
+                      ),
+                      onTap: () => context.go('/sections/thermal'),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ),
-        ],
+              SizedBox(height: tokens.space2),
+              AppSection(
+                title: 'dashboard.exploreTitle'.tr,
+                subtitle: 'dashboard.browseSections'.tr,
+                trailing: TextButton(
+                  onPressed: () => context.go('/sections'),
+                  child: Text('action.open'.tr),
+                ),
+                child: AppCard(
+                  padding: EdgeInsets.all(tokens.space2),
+                  child: Wrap(
+                    spacing: tokens.space2,
+                    runSpacing: tokens.space2,
+                    children: [
+                      for (final def in sectionDefinitions)
+                        ActionChip(
+                          avatar: Icon(def.icon, size: 18),
+                          label: Text(def.titleKey.tr),
+                          onPressed: () =>
+                              context.go('/sections/${def.pathSegment}'),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -214,5 +245,67 @@ class DashboardPage extends ConsumerWidget {
     } catch (_) {
       return null;
     }
+  }
+}
+
+class _MetricTile extends StatelessWidget {
+  const _MetricTile({
+    required this.title,
+    required this.icon,
+    required this.value,
+    required this.onTap,
+  });
+
+  final String title;
+  final IconData icon;
+  final String value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tokens = theme.extension<ThemeTokensExtension>()!.tokens;
+
+    return AppCard(
+      onTap: onTap,
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(tokens.radiusMd),
+            ),
+            child: Icon(icon, color: theme.colorScheme.onPrimaryContainer),
+          ),
+          SizedBox(width: tokens.space3),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.titleMedium,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                SizedBox(height: tokens.space1),
+                Text(
+                  value,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right),
+        ],
+      ),
+    );
   }
 }

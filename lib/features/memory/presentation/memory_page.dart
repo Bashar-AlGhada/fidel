@@ -6,6 +6,9 @@ import '../../../application/providers/units_providers.dart';
 import '../../../application/providers/system_providers.dart';
 import '../../../application/sampling/active_module.dart';
 import '../../../application/sampling/sampling_provider.dart';
+import '../../../core/routing/app_nav_shell.dart';
+import '../../../core/theme/theme_tokens.dart';
+import '../../../core/ui/app_states.dart';
 import '../../../domain/units/unit_preferences.dart';
 
 class MemoryPage extends ConsumerWidget {
@@ -24,24 +27,35 @@ class MemoryPage extends ConsumerWidget {
         .watch(unitPreferencesStreamProvider)
         .maybeWhen(data: (p) => p, orElse: () => UnitPreferences.defaults);
     final formatter = ref.watch(unitsFormatterProvider);
+    final shell = AppNavShellScope.maybeOf(context);
+    final showMenu = shell?.hasDrawer == true && !Navigator.of(context).canPop();
+    final tokens = Theme.of(context).extension<ThemeTokensExtension>()!.tokens;
 
     return Scaffold(
-      appBar: AppBar(title: Text('nav.memory'.tr)),
+      appBar: AppBar(
+        leading: showMenu
+            ? IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: shell?.openDrawer,
+              )
+            : null,
+        title: Text('nav.memory'.tr),
+      ),
       body: mem.when(
         data: (m) {
           final usedPct = (m.usedRatio * 100).clamp(0, 100).toStringAsFixed(1);
           return ListView(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(tokens.space3),
             children: [
               Text(
                 '$usedPct%',
                 style: Theme.of(context).textTheme.displaySmall,
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: tokens.space3),
               RepaintBoundary(
                 child: LinearProgressIndicator(value: m.usedRatio),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: tokens.space3),
               Text(
                 'memory.used'.trParams({
                   'value': formatter.formatBytes(
@@ -69,8 +83,12 @@ class MemoryPage extends ConsumerWidget {
             ],
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, st) => const Center(child: Text('Unavailable')),
+        loading: () => const AppLoadingState(),
+        error: (err, st) => AppErrorState(
+          title: 'availability.unavailable'.tr,
+          actionLabel: 'action.retry'.tr,
+          onAction: () => ref.invalidate(memoryStreamProvider),
+        ),
       ),
     );
   }

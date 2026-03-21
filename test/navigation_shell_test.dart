@@ -6,11 +6,11 @@ import 'package:fidel/main.dart';
 
 void main() {
   testWidgets('Shows drawer menu button on narrow layouts', (tester) async {
-    tester.binding.window.devicePixelRatioTestValue = 1.0;
-    tester.binding.window.physicalSizeTestValue = const Size(420, 800);
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(420, 800);
     addTearDown(() {
-      tester.binding.window.clearPhysicalSizeTestValue();
-      tester.binding.window.clearDevicePixelRatioTestValue();
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
     });
 
     await tester.pumpWidget(const ProviderScope(child: FidelApp()));

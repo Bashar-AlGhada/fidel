@@ -46,7 +46,7 @@ class SettingsPage extends ConsumerWidget {
             title: 'settings.theme'.tr,
             child: AppCard(
               child: DropdownButtonFormField<AppThemeMode>(
-                value: themeMode,
+                initialValue: themeMode,
                 decoration: const InputDecoration(isDense: true),
                 onChanged: (v) {
                   if (v == null) return;
@@ -65,7 +65,7 @@ class SettingsPage extends ConsumerWidget {
             title: 'settings.language'.tr,
             child: AppCard(
               child: DropdownButtonFormField<Locale>(
-                value: locale,
+                initialValue: locale,
                 decoration: const InputDecoration(isDense: true),
                 onChanged: (v) {
                   if (v == null) return;

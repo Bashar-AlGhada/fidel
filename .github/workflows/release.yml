@@ -1,9 +1,13 @@
-name: Build & Release
+name: CI, Build & Release
 
 on:
   push:
+    branches:
+      - main
+      - master
     tags:
       - "v*"
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -14,8 +18,37 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  verify:
+    name: Analyze & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Pub get
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test --machine > test-results.json
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-test-results
+          path: test-results.json
+
   build_android:
     name: Build Android APK
+    needs: verify
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -35,12 +68,6 @@ jobs:
       - name: Pub get
         run: flutter pub get
 
-      - name: Analyze
-        run: flutter analyze
-
-      - name: Test
-        run: flutter test
-
       - name: Build APK (release)
         run: flutter build apk --release
 
@@ -58,6 +85,7 @@ jobs:
 
   build_windows:
     name: Build Windows ZIP
+    needs: verify
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -91,6 +119,7 @@ jobs:
 
   release:
     name: Create GitHub Release
+    if: startsWith(github.ref, 'refs/tags/')
     needs: [build_android, build_windows]
     runs-on: ubuntu-latest
     steps:
@@ -102,8 +131,7 @@ jobs:
       - name: List artifacts
         run: ls -R dist
 
-      - name: Publish GitHub Release (tag push only)
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |

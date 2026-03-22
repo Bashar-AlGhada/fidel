@@ -83,44 +83,10 @@ jobs:
           name: fidel-android-apk-zip
           path: dist/fidel-android-apk.zip
 
-  build_windows:
-    name: Build Windows ZIP
-    needs: verify
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-
-      - name: Pub get
-        run: flutter pub get
-
-      - name: Build Windows (release)
-        run: flutter build windows --release
-
-      - name: Package Windows artifact
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force -Path dist | Out-Null
-          $src = "build/windows/x64/runner/Release"
-          $zip = "dist/fidel-windows-x64.zip"
-          if (Test-Path $zip) { Remove-Item $zip -Force }
-          Compress-Archive -Path (Join-Path $src "*") -DestinationPath $zip
-
-      - name: Upload Windows ZIP
-        uses: actions/upload-artifact@v4
-        with:
-          name: fidel-windows-x64-zip
-          path: dist/fidel-windows-x64.zip
-
   release:
     name: Create GitHub Release
     if: startsWith(github.ref, 'refs/tags/')
-    needs: [build_android, build_windows]
+    needs: [build_android]
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
@@ -136,4 +102,3 @@ jobs:
         with:
           files: |
             dist/**/fidel-android-apk.zip
-            dist/**/fidel-windows-x64.zip

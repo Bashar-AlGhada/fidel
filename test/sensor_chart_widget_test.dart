@@ -14,14 +14,28 @@ void main() {
         translations: AppTranslations(),
         locale: const Locale('en', 'US'),
         theme: buildLightTheme(),
-        home: const Scaffold(
-          body: SensorChart(samples: []),
-        ),
+        home: const Scaffold(body: SensorChart(samples: [])),
       ),
     );
     await tester.pumpAndSettle();
 
     expect(find.byType(AppEmptyState), findsOneWidget);
   });
-}
 
+  testWidgets('SensorChart with constrained height does not overflow', (tester) async {
+    await tester.pumpWidget(
+      GetMaterialApp(
+        translations: AppTranslations(),
+        locale: const Locale('en', 'US'),
+        theme: buildLightTheme(),
+        home: const Scaffold(
+          body: SizedBox(height: 116, child: SensorChart(samples: [])),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AppEmptyState), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+}

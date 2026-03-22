@@ -37,7 +37,7 @@ jobs:
         run: flutter analyze
 
       - name: Test
-        run: flutter test --machine > test-results.json
+        run: flutter test
 
       - name: Upload test results
         if: always()

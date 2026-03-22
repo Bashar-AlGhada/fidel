@@ -8,12 +8,7 @@ import '../../../../core/ui/app_states.dart';
 import '../../../../domain/entities/sensors/sensor_reading_entity.dart';
 
 class SensorChart extends StatefulWidget {
-  const SensorChart({
-    required this.samples,
-    this.height = 180,
-    this.onRetry,
-    super.key,
-  });
+  const SensorChart({required this.samples, this.height = 180, this.onRetry, super.key});
 
   final List<SensorReadingEntity> samples;
   final double height;
@@ -41,15 +36,20 @@ class _SensorChartState extends State<SensorChart> {
 
     final samples = widget.samples;
     if (samples.isEmpty) {
-      return SizedBox(
-        height: widget.height,
-        child: AppEmptyState(
-          title: 'sensor.noData'.tr,
-          message: 'sensor.noDataHint'.tr,
-          icon: Icons.sensors_off_outlined,
-          actionLabel: widget.onRetry == null ? null : 'action.retry'.tr,
-          onAction: widget.onRetry,
-        ),
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final height = constraints.maxHeight.isFinite ? math.min(constraints.maxHeight, widget.height) : widget.height;
+          return SizedBox(
+            height: height,
+            child: AppEmptyState(
+              title: 'sensor.noData'.tr,
+              message: 'sensor.noDataHint'.tr,
+              icon: Icons.sensors_off_outlined,
+              actionLabel: widget.onRetry == null ? null : 'action.retry'.tr,
+              onAction: widget.onRetry,
+            ),
+          );
+        },
       );
     }
 
@@ -67,25 +67,31 @@ class _SensorChartState extends State<SensorChart> {
     }
 
     if (dims == 0 || validPoints < 2) {
-      return SizedBox(
-        height: widget.height,
-        child: AppEmptyState(
-          title: 'sensor.notEnoughSamples'.tr,
-          message: 'sensor.notEnoughSamplesHint'.tr,
-          icon: Icons.show_chart,
-        ),
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final height = constraints.maxHeight.isFinite ? math.min(constraints.maxHeight, widget.height) : widget.height;
+          return SizedBox(
+            height: height,
+            child: AppEmptyState(title: 'sensor.notEnoughSamples'.tr, message: 'sensor.notEnoughSamplesHint'.tr, icon: Icons.show_chart),
+          );
+        },
       );
     }
 
     if (!minY.isFinite || !maxY.isFinite) {
-      return SizedBox(
-        height: widget.height,
-        child: AppErrorState(
-          title: 'sensor.invalidData'.tr,
-          message: 'sensor.invalidDataHint'.tr,
-          actionLabel: widget.onRetry == null ? null : 'action.retry'.tr,
-          onAction: widget.onRetry,
-        ),
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final height = constraints.maxHeight.isFinite ? math.min(constraints.maxHeight, widget.height) : widget.height;
+          return SizedBox(
+            height: height,
+            child: AppErrorState(
+              title: 'sensor.invalidData'.tr,
+              message: 'sensor.invalidDataHint'.tr,
+              actionLabel: widget.onRetry == null ? null : 'action.retry'.tr,
+              onAction: widget.onRetry,
+            ),
+          );
+        },
       );
     }
 
@@ -94,29 +100,34 @@ class _SensorChartState extends State<SensorChart> {
       maxY += 1;
     }
 
-    return SizedBox(
-      height: widget.height,
-      child: RepaintBoundary(
-        child: TweenAnimationBuilder<double>(
-          key: ValueKey(_sequence),
-          duration: Duration(milliseconds: tokens.motionFastMs),
-          curve: Curves.easeOutCubic,
-          tween: Tween(begin: 0, end: 1),
-          builder: (context, t, _) {
-            return CustomPaint(
-              painter: _SensorChartPainter(
-                samples: samples,
-                colorScheme: theme.colorScheme,
-                tokens: tokens,
-                dims: dims,
-                minY: minY,
-                maxY: maxY,
-                t: t,
-              ),
-            );
-          },
-        ),
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final height = constraints.maxHeight.isFinite ? math.min(constraints.maxHeight, widget.height) : widget.height;
+        return SizedBox(
+          height: height,
+          child: RepaintBoundary(
+            child: TweenAnimationBuilder<double>(
+              key: ValueKey(_sequence),
+              duration: Duration(milliseconds: tokens.motionFastMs),
+              curve: Curves.easeOutCubic,
+              tween: Tween(begin: 0, end: 1),
+              builder: (context, t, _) {
+                return CustomPaint(
+                  painter: _SensorChartPainter(
+                    samples: samples,
+                    colorScheme: theme.colorScheme,
+                    tokens: tokens,
+                    dims: dims,
+                    minY: minY,
+                    maxY: maxY,
+                    t: t,
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -144,10 +155,7 @@ class _SensorChartPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final r = tokens.radiusSm;
     final bg = Paint()..color = colorScheme.surfaceContainerHighest;
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(r)),
-      bg,
-    );
+    canvas.drawRRect(RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(r)), bg);
 
     final left = tokens.space2;
     final top = tokens.space2;
@@ -163,12 +171,7 @@ class _SensorChartPainter extends CustomPainter {
       canvas.drawLine(Offset(left, y), Offset(left + w, y), gridPaint);
     }
 
-    final colors = <Color>[
-      colorScheme.primary,
-      colorScheme.tertiary,
-      colorScheme.secondary,
-      colorScheme.error,
-    ];
+    final colors = <Color>[colorScheme.primary, colorScheme.tertiary, colorScheme.secondary, colorScheme.error];
 
     for (var dim = 0; dim < dims; dim++) {
       final linePaint = Paint()
@@ -209,10 +212,7 @@ class _SensorChartPainter extends CustomPainter {
       ..color = colorScheme.onSurfaceVariant.withValues(alpha: 0.18)
       ..style = PaintingStyle.stroke
       ..strokeWidth = tokens.strokeWidth;
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(r)),
-      border,
-    );
+    canvas.drawRRect(RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(r)), border);
   }
 
   @override

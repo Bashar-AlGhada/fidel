@@ -28,9 +28,7 @@ class DashboardPage extends ConsumerWidget {
     final activeModule = ref.watch(activeModuleProvider);
     if (activeModule != ActiveModule.dashboard) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref
-            .read(activeModuleProvider.notifier)
-            .setModule(ActiveModule.dashboard);
+        ref.read(activeModuleProvider.notifier).setModule(ActiveModule.dashboard);
       });
     }
 
@@ -38,9 +36,7 @@ class DashboardPage extends ConsumerWidget {
     final mem = ref.watch(memoryStreamProvider);
     final bat = ref.watch(batteryStreamProvider);
     final thermal = ref.watch(sectionMetadataStreamProvider('thermal'));
-    final prefs = ref
-        .watch(unitPreferencesStreamProvider)
-        .maybeWhen(data: (p) => p, orElse: () => UnitPreferences.defaults);
+    final prefs = ref.watch(unitPreferencesStreamProvider).maybeWhen(data: (p) => p, orElse: () => UnitPreferences.defaults);
     final formatter = ref.watch(unitsFormatterProvider);
     final theme = Theme.of(context);
     final tokens = theme.extension<ThemeTokensExtension>()!.tokens;
@@ -49,19 +45,9 @@ class DashboardPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        leading: showMenu
-            ? IconButton(
-                icon: const Icon(Icons.menu),
-                onPressed: shell?.openDrawer,
-              )
-            : null,
+        leading: showMenu ? IconButton(icon: const Icon(Icons.menu), onPressed: shell?.openDrawer) : null,
         title: Text('nav.dashboard'.tr),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.upload_file),
-            onPressed: () => _exportSnapshot(context, ref),
-          ),
-        ],
+        actions: [IconButton(icon: const Icon(Icons.upload_file), onPressed: () => _exportSnapshot(context, ref))],
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
@@ -90,8 +76,7 @@ class DashboardPage extends ConsumerWidget {
                       title: 'nav.cpu'.tr,
                       icon: Icons.speed,
                       value: cpu.when(
-                        data: (v) =>
-                            '${v.usage.toWholePercent()}% · ${v.cores} cores',
+                        data: (v) => '${v.usage.toWholePercent()}% · ${v.cores} cores',
                         loading: () => 'availability.loading'.tr,
                         error: (err, st) => 'availability.unavailable'.tr,
                       ),
@@ -101,8 +86,7 @@ class DashboardPage extends ConsumerWidget {
                       title: 'nav.memory'.tr,
                       icon: Icons.memory,
                       value: mem.when(
-                        data: (m) =>
-                            '${(m.usedRatio * 100).toStringAsFixed(1)}%',
+                        data: (m) => '${(m.usedRatio * 100).toStringAsFixed(1)}%',
                         loading: () => 'availability.loading'.tr,
                         error: (err, st) => 'availability.unavailable'.tr,
                       ),
@@ -122,9 +106,7 @@ class DashboardPage extends ConsumerWidget {
                       title: 'section.thermal'.tr,
                       icon: Icons.thermostat,
                       value: thermal.when(
-                        data: (v) =>
-                            _thermalSummary(v, prefs: prefs, formatter: formatter) ??
-                            'availability.unavailable'.tr,
+                        data: (v) => _thermalSummary(v, prefs: prefs, formatter: formatter) ?? 'availability.unavailable'.tr,
                         loading: () => 'availability.loading'.tr,
                         error: (err, st) => 'availability.unavailable'.tr,
                       ),
@@ -137,10 +119,7 @@ class DashboardPage extends ConsumerWidget {
               AppSection(
                 title: 'dashboard.exploreTitle'.tr,
                 subtitle: 'dashboard.browseSections'.tr,
-                trailing: TextButton(
-                  onPressed: () => context.go('/sections'),
-                  child: Text('action.open'.tr),
-                ),
+                trailing: TextButton(onPressed: () => context.go('/sections'), child: Text('action.open'.tr)),
                 child: AppCard(
                   padding: EdgeInsets.all(tokens.space2),
                   child: Wrap(
@@ -151,8 +130,7 @@ class DashboardPage extends ConsumerWidget {
                         ActionChip(
                           avatar: Icon(def.icon, size: 18),
                           label: Text(def.titleKey.tr),
-                          onPressed: () =>
-                              context.go('/sections/${def.pathSegment}'),
+                          onPressed: () => context.go('/sections/${def.pathSegment}'),
                         ),
                     ],
                   ),
@@ -169,47 +147,27 @@ class DashboardPage extends ConsumerWidget {
     final format = await showExportFormatSheet(context);
     if (format == null) return;
 
-    final result = await ref
-        .read(androidSystemDatasourceProvider)
-        .exportInputsSnapshotResult(
-          includeLastKnownSensors: true,
-          maxSensorSamples: 128,
-        );
+    final result = await ref.read(androidSystemDatasourceProvider).exportInputsSnapshotResult(includeLastKnownSensors: true, maxSensorSamples: 128);
     if (result['ok'] != true) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('availability.unavailable'.tr)));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('availability.unavailable'.tr)));
       }
       return;
     }
 
     final data = result['data'];
-    final map = data is Map
-        ? data.cast<String, dynamic>()
-        : <String, dynamic>{};
+    final map = data is Map ? data.cast<String, dynamic>() : <String, dynamic>{};
     final service = ref.read(exportServiceProvider);
-    final file = await service.exportSnapshot(
-      map,
-      format: format,
-      fileBaseName: 'fidel-snapshot',
-    );
+    final file = await service.exportSnapshot(map, format: format, fileBaseName: 'fidel-snapshot');
     await service.share(file);
   }
 
-  String? _thermalSummary(
-    InfoSectionEntity section, {
-    required UnitPreferences prefs,
-    required UnitsFormatter formatter,
-  }) {
+  String? _thermalSummary(InfoSectionEntity section, {required UnitPreferences prefs, required UnitsFormatter formatter}) {
     final tempsJson = _findText(section, 'thermal.temperatures');
     if (tempsJson != null && tempsJson.isNotEmpty) {
       final max = _maxTempCFromJson(tempsJson);
       if (max != null) {
-        return formatter.formatTemperature(
-          celsius: max,
-          unit: prefs.temperature,
-        );
+        return formatter.formatTemperature(celsius: max, unit: prefs.temperature);
       }
     }
     return _findText(section, 'thermal.thermalStatus');
@@ -231,8 +189,7 @@ class DashboardPage extends ConsumerWidget {
       for (final entry in decoded) {
         if (entry is! Map) continue;
         final map = entry.cast<String, dynamic>();
-        final value =
-            map['valueC'] ?? map['value'] ?? map['tempC'] ?? map['celsius'];
+        final value = map['valueC'] ?? map['value'] ?? map['tempC'] ?? map['celsius'];
         final numValue = switch (value) {
           num v => v.toDouble(),
           String v => double.tryParse(v),
@@ -249,12 +206,7 @@ class DashboardPage extends ConsumerWidget {
 }
 
 class _MetricTile extends StatelessWidget {
-  const _MetricTile({
-    required this.title,
-    required this.icon,
-    required this.value,
-    required this.onTap,
-  });
+  const _MetricTile({required this.title, required this.icon, required this.value, required this.onTap});
 
   final String title;
   final IconData icon;
@@ -273,34 +225,28 @@ class _MetricTile extends StatelessWidget {
           Container(
             width: 44,
             height: 44,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primaryContainer,
-              borderRadius: BorderRadius.circular(tokens.radiusMd),
-            ),
+            decoration: BoxDecoration(color: theme.colorScheme.primaryContainer, borderRadius: BorderRadius.circular(tokens.radiusMd)),
             child: Icon(icon, color: theme.colorScheme.onPrimaryContainer),
           ),
           SizedBox(width: tokens.space3),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  title,
-                  style: theme.textTheme.titleMedium,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                SizedBox(height: tokens.space1),
-                Text(
-                  value,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: theme.textTheme.titleMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  SizedBox(height: tokens.space1 / 2),
+                  Text(
+                    value,
+                    style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           const Icon(Icons.chevron_right),

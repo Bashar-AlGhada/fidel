@@ -23,7 +23,9 @@ void main() {
     expect(find.byType(AppEmptyState), findsOneWidget);
   });
 
-  testWidgets('SensorChart with constrained height does not overflow', (tester) async {
+  testWidgets('SensorChart with constrained height does not overflow', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       GetMaterialApp(
         translations: AppTranslations(),
@@ -40,8 +42,13 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('SensorChart with one sample shows not-enough state safely', (tester) async {
-    final sample = SensorReadingEntity(timestamp: DateTime(2026, 1, 1), values: const [0.12, 0.34, 0.56]);
+  testWidgets('SensorChart with one sample shows not-enough state safely', (
+    tester,
+  ) async {
+    final sample = SensorReadingEntity(
+      timestamp: DateTime(2026, 1, 1),
+      values: const [0.12, 0.34, 0.56],
+    );
 
     await tester.pumpWidget(
       GetMaterialApp(

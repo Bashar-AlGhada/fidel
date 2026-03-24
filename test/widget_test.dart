@@ -16,5 +16,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Summary'), findsWidgets);
+    expect(find.text('Info'), findsWidgets);
+    expect(find.text('Testers'), findsWidgets);
   });
 }

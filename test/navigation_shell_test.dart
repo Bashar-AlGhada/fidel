@@ -5,7 +5,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:fidel/main.dart';
 
 void main() {
-  testWidgets('Shows drawer menu button on narrow layouts', (tester) async {
+  testWidgets('Shows new bottom navigation destinations', (tester) async {
     tester.view.devicePixelRatio = 1.0;
     tester.view.physicalSize = const Size(420, 800);
     addTearDown(() {
@@ -16,7 +16,9 @@ void main() {
     await tester.pumpWidget(const ProviderScope(child: FidelApp()));
     await tester.pumpAndSettle();
 
-    expect(find.byIcon(Icons.menu), findsWidgets);
+    expect(find.text('Summary'), findsWidgets);
+    expect(find.text('Info'), findsWidgets);
+    expect(find.text('Testers'), findsWidgets);
+    expect(find.text('Settings'), findsWidgets);
   });
 }
-

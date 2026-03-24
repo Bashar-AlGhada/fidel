@@ -61,4 +61,3 @@ void main() {
     expect(cancelCount, 1);
   });
 }
-

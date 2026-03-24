@@ -23,46 +23,30 @@ class ThermalSectionPage extends ConsumerWidget {
     final activeModule = ref.watch(activeModuleProvider);
     if (activeModule != ActiveModule.sections) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref
-            .read(activeModuleProvider.notifier)
-            .setModule(ActiveModule.sections);
+        ref.read(activeModuleProvider.notifier).setModule(ActiveModule.sections);
       });
     }
 
     final section = ref.watch(sectionMetadataStreamProvider('thermal'));
-    final prefs = ref
-        .watch(unitPreferencesStreamProvider)
-        .maybeWhen(data: (p) => p, orElse: () => UnitPreferences.defaults);
+    final prefs = ref.watch(unitPreferencesStreamProvider).maybeWhen(data: (p) => p, orElse: () => UnitPreferences.defaults);
     final formatter = ref.watch(unitsFormatterProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: Text('section.thermal'.tr),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.upload_file),
-            onPressed: () => _export(context, ref, section.asData?.value),
-          ),
-        ],
+        actions: [IconButton(icon: const Icon(Icons.upload_file), onPressed: () => _export(context, ref, section.asData?.value))],
       ),
       body: section.when(
-        data: (value) =>
-            _ThermalView(section: value, prefs: prefs, formatter: formatter),
+        data: (value) => _ThermalView(section: value, prefs: prefs, formatter: formatter),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, st) => const Center(child: Text('Unavailable')),
       ),
     );
   }
 
-  Future<void> _export(
-    BuildContext context,
-    WidgetRef ref,
-    InfoSectionEntity? section,
-  ) async {
+  Future<void> _export(BuildContext context, WidgetRef ref, InfoSectionEntity? section) async {
     if (section == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('availability.unavailable'.tr)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('availability.unavailable'.tr)));
       return;
     }
 
@@ -70,21 +54,13 @@ class ThermalSectionPage extends ConsumerWidget {
     if (format == null) return;
 
     final service = ref.read(exportServiceProvider);
-    final file = await service.exportSection(
-      section,
-      format: format,
-      fileBaseName: 'fidel-${section.id}',
-    );
+    final file = await service.exportSection(section, format: format, fileBaseName: 'fidel-${section.id}');
     await service.share(file);
   }
 }
 
 class _ThermalView extends StatelessWidget {
-  const _ThermalView({
-    required this.section,
-    required this.prefs,
-    required this.formatter,
-  });
+  const _ThermalView({required this.section, required this.prefs, required this.formatter});
 
   final InfoSectionEntity section;
   final UnitPreferences prefs;
@@ -96,9 +72,7 @@ class _ThermalView extends StatelessWidget {
     final timestampMs = _findText(section, 'thermal.timestampMs');
     final temps = _extractTemps(section);
 
-    final maxTemp = temps
-        .map((e) => e.value)
-        .fold<double?>(null, (p, v) => p == null ? v : (v > p ? v : p));
+    final maxTemp = temps.map((e) => e.value).fold<double?>(null, (p, v) => p == null ? v : (v > p ? v : p));
 
     final sorted = [...temps]..sort((a, b) => b.value.compareTo(a.value));
 
@@ -111,22 +85,14 @@ class _ThermalView extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'thermal.currentStatus'.tr,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
+                Text('thermal.currentStatus'.tr, style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),
                 Text(status ?? 'availability.unavailable'.tr),
                 if (maxTemp != null) ...[
                   const SizedBox(height: 8),
-                  Text(
-                    '${'thermal.maxTemp'.tr}: ${formatter.formatTemperature(celsius: maxTemp, unit: prefs.temperature)}',
-                  ),
+                  Text('${'thermal.maxTemp'.tr}: ${formatter.formatTemperature(celsius: maxTemp, unit: prefs.temperature)}'),
                 ],
-                if (timestampMs != null) ...[
-                  const SizedBox(height: 8),
-                  Text('${'thermal.timestamp'.tr}: $timestampMs'),
-                ],
+                if (timestampMs != null) ...[const SizedBox(height: 8), Text('${'thermal.timestamp'.tr}: $timestampMs')],
               ],
             ),
           ),
@@ -136,22 +102,14 @@ class _ThermalView extends StatelessWidget {
           return Card(
             child: ListTile(
               title: Text(t.label),
-              trailing: Text(
-                formatter.formatTemperature(
-                  celsius: t.value,
-                  unit: prefs.temperature,
-                ),
-              ),
+              trailing: Text(formatter.formatTemperature(celsius: t.value, unit: prefs.temperature)),
               subtitle: t.type == null ? null : Text(t.type!),
             ),
           );
         }),
         if (sorted.isEmpty)
           Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text('thermal.noTemperatures'.tr),
-            ),
+            child: Padding(padding: const EdgeInsets.all(16), child: Text('thermal.noTemperatures'.tr)),
           ),
       ],
     );
@@ -166,10 +124,7 @@ class _ThermalView extends StatelessWidget {
   }
 
   List<_TempRow> _extractTemps(InfoSectionEntity section) {
-    final item = section.items.cast<InfoItemEntity?>().firstWhere(
-      (it) => it?.labelKey == 'thermal.temperatures',
-      orElse: () => null,
-    );
+    final item = section.items.cast<InfoItemEntity?>().firstWhere((it) => it?.labelKey == 'thermal.temperatures', orElse: () => null);
     final raw = item?.value?.text;
     if (raw == null || raw.isEmpty) return const [];
 
@@ -189,8 +144,7 @@ class _ThermalView extends StatelessWidget {
           .whereType<Map>()
           .map((rawMap) {
             final map = rawMap;
-            final value =
-                map['valueC'] ?? map['value'] ?? map['tempC'] ?? map['celsius'];
+            final value = map['valueC'] ?? map['value'] ?? map['tempC'] ?? map['celsius'];
             final numValue = switch (value) {
               num v => v.toDouble(),
               String v => double.tryParse(v) ?? double.nan,
@@ -198,15 +152,8 @@ class _ThermalView extends StatelessWidget {
             };
             if (numValue.isNaN || numValue.isInfinite) return null;
 
-            final label =
-                (map['name'] ?? map['label'] ?? map['source'] ?? map['type'])
-                    ?.toString()
-                    .trim();
-            return _TempRow(
-              label: (label == null || label.isEmpty) ? 'Temperature' : label,
-              type: map['type']?.toString(),
-              value: numValue,
-            );
+            final label = (map['name'] ?? map['label'] ?? map['source'] ?? map['type'])?.toString().trim();
+            return _TempRow(label: (label == null || label.isEmpty) ? 'Temperature' : label, type: map['type']?.toString(), value: numValue);
           })
           .whereType<_TempRow>()
           .toList(growable: false);

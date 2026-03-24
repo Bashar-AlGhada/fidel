@@ -27,12 +27,7 @@ class BatteryPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        leading: showMenu
-            ? IconButton(
-                icon: const Icon(Icons.menu),
-                onPressed: shell?.openDrawer,
-              )
-            : null,
+        leading: showMenu ? IconButton(icon: const Icon(Icons.menu), onPressed: shell?.openDrawer) : null,
         title: Text('nav.battery'.tr),
       ),
       body: bat.when(

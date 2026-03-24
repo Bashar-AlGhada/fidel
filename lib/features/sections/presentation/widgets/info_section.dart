@@ -20,9 +20,7 @@ class InfoSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final items = section.items;
-    final prefs = ref
-        .watch(unitPreferencesStreamProvider)
-        .maybeWhen(data: (p) => p, orElse: () => UnitPreferences.defaults);
+    final prefs = ref.watch(unitPreferencesStreamProvider).maybeWhen(data: (p) => p, orElse: () => UnitPreferences.defaults);
     final formatter = ref.watch(unitsFormatterProvider);
 
     return ListView.separated(
@@ -49,46 +47,24 @@ class _AvailabilityCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final (icon, textKey, color) = switch (availability) {
-      InfoAvailability.available => (
-        Icons.check_circle,
-        'availability.available',
-        Colors.green,
-      ),
-      InfoAvailability.unavailable => (
-        Icons.warning_amber,
-        'availability.unavailable',
-        Colors.orange,
-      ),
-      InfoAvailability.notSupported => (
-        Icons.block,
-        'availability.notSupported',
-        Colors.red,
-      ),
-      InfoAvailability.restricted => (
-        Icons.lock,
-        'availability.restricted',
-        Colors.orange,
-      ),
+      InfoAvailability.available => (Icons.check_circle, 'availability.available', Colors.green),
+      InfoAvailability.unavailable => (Icons.warning_amber, 'availability.unavailable', Colors.orange),
+      InfoAvailability.notSupported => (Icons.block, 'availability.notSupported', Colors.red),
+      InfoAvailability.restricted => (Icons.lock, 'availability.restricted', Colors.orange),
     };
 
     return Card(
       child: ListTile(
         leading: Icon(icon, color: color),
         title: Text(textKey.tr, style: theme.textTheme.titleMedium),
-        subtitle: availability == InfoAvailability.available
-            ? Text('availability.availableHint'.tr)
-            : Text('availability.unavailableHint'.tr),
+        subtitle: availability == InfoAvailability.available ? Text('availability.availableHint'.tr) : Text('availability.unavailableHint'.tr),
       ),
     );
   }
 }
 
 class _InfoItemCard extends StatelessWidget {
-  const _InfoItemCard({
-    required this.item,
-    required this.prefs,
-    required this.formatter,
-  });
+  const _InfoItemCard({required this.item, required this.prefs, required this.formatter});
 
   final InfoItemEntity item;
   final UnitPreferences prefs;
@@ -97,49 +73,28 @@ class _InfoItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (valueText, valueStyle) = _renderValue(context, item);
-    final availabilityText = item.availability == InfoAvailability.available
-        ? null
-        : _availabilityLabel(item.availability);
+    final availabilityText = item.availability == InfoAvailability.available ? null : _availabilityLabel(item.availability);
 
     return Card(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         child: ListTile(
           title: Text(item.labelKey.tr),
-          subtitle: valueText == null
-              ? Text(availabilityText ?? 'availability.unavailable'.tr)
-              : Text(valueText, style: valueStyle),
-          trailing: availabilityText == null
-              ? null
-              : Text(
-                  availabilityText,
-                  style: Theme.of(context).textTheme.labelMedium,
-                ),
+          subtitle: valueText == null ? Text(availabilityText ?? 'availability.unavailable'.tr) : Text(valueText, style: valueStyle),
+          trailing: availabilityText == null ? null : Text(availabilityText, style: Theme.of(context).textTheme.labelMedium),
         ),
       ),
     );
   }
 
-  (String?, TextStyle?) _renderValue(
-    BuildContext context,
-    InfoItemEntity item,
-  ) {
+  (String?, TextStyle?) _renderValue(BuildContext context, InfoItemEntity item) {
     final theme = Theme.of(context);
     final value = item.value;
     if (value == null) return (null, null);
     return switch (value.kind) {
-      InfoItemValueKind.text => (
-        _formatTextValue(item.labelKey, value.text ?? '') ?? (value.text ?? ''),
-        theme.textTheme.bodyMedium,
-      ),
-      InfoItemValueKind.redacted => (
-        'value.redacted'.tr,
-        theme.textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic),
-      ),
-      InfoItemValueKind.hidden => (
-        'value.hidden'.tr,
-        theme.textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic),
-      ),
+      InfoItemValueKind.text => (_formatTextValue(item.labelKey, value.text ?? '') ?? (value.text ?? ''), theme.textTheme.bodyMedium),
+      InfoItemValueKind.redacted => ('value.redacted'.tr, theme.textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic)),
+      InfoItemValueKind.hidden => ('value.hidden'.tr, theme.textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic)),
     };
   }
 
@@ -165,8 +120,7 @@ class _InfoItemCard extends StatelessWidget {
       if (mv == null) return null;
       return '${(mv / 1000.0).toStringAsFixed(3)} V';
     }
-    if (labelKey.endsWith('currentNowUa') ||
-        labelKey.endsWith('currentAverageUa')) {
+    if (labelKey.endsWith('currentNowUa') || labelKey.endsWith('currentAverageUa')) {
       final ua = double.tryParse(raw);
       if (ua == null) return null;
       return formatter.formatElectricCurrent(microAmps: ua);
@@ -181,10 +135,12 @@ class _InfoItemCard extends StatelessWidget {
     try {
       final decoded = jsonDecode(trimmed);
       if (decoded is Map) {
-        final entries = decoded.entries.map((entry) {
-          final value = _compactJsonValue(entry.value);
-          return '${entry.key}: $value';
-        }).toList(growable: false);
+        final entries = decoded.entries
+            .map((entry) {
+              final value = _compactJsonValue(entry.value);
+              return '${entry.key}: $value';
+            })
+            .toList(growable: false);
         return entries.join('\n');
       }
 

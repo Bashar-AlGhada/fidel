@@ -18,14 +18,10 @@ void main() {
     expect(section.id, 'device-build');
     expect(section.items, isNotEmpty);
 
-    final manufacturer = section.items.firstWhere(
-      (i) => i.labelKey == 'device.manufacturer',
-    );
+    final manufacturer = section.items.firstWhere((i) => i.labelKey == 'device.manufacturer');
     expect(manufacturer.value?.text, 'Google');
 
-    final abis = section.items.firstWhere(
-      (i) => i.labelKey == 'device.supportedAbis',
-    );
+    final abis = section.items.firstWhere((i) => i.labelKey == 'device.supportedAbis');
     expect(abis.value?.text, contains('arm64-v8a'));
   });
 
@@ -34,14 +30,10 @@ void main() {
 
     final section = mapper.display({'widthPx': null, 'heightPx': 100});
 
-    final width = section.items.firstWhere(
-      (i) => i.labelKey == 'display.widthPx',
-    );
+    final width = section.items.firstWhere((i) => i.labelKey == 'display.widthPx');
     expect(width.value, isNull);
 
-    final height = section.items.firstWhere(
-      (i) => i.labelKey == 'display.heightPx',
-    );
+    final height = section.items.firstWhere((i) => i.labelKey == 'display.heightPx');
     expect(height.value?.text, '100');
   });
 
@@ -52,9 +44,7 @@ void main() {
       'refreshRatesHz': [60.0, 90.0, 120.25],
     });
 
-    final rates = section.items.firstWhere(
-      (i) => i.labelKey == 'display.refreshRatesHz',
-    );
+    final rates = section.items.firstWhere((i) => i.labelKey == 'display.refreshRatesHz');
     expect(rates.value?.text, '60, 90, 120.25 Hz');
   });
 
@@ -62,15 +52,10 @@ void main() {
     final mapper = InfoSectionMapper();
 
     final section = mapper.thermal({
-      'temperatures': {
-        'batteryTempC': 34.5,
-        'cpuTempC': 47,
-      },
+      'temperatures': {'batteryTempC': 34.5, 'cpuTempC': 47},
     });
 
-    final temps = section.items.firstWhere(
-      (i) => i.labelKey == 'thermal.temperatures',
-    );
+    final temps = section.items.firstWhere((i) => i.labelKey == 'thermal.temperatures');
     expect(temps.value?.text, contains('battery'));
     expect(temps.value?.text, contains('cpu'));
     expect(temps.value?.text, contains('34.5'));

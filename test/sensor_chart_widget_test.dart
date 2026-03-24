@@ -41,10 +41,7 @@ void main() {
   });
 
   testWidgets('SensorChart with one sample shows not-enough state safely', (tester) async {
-    final sample = SensorReadingEntity(
-      timestamp: DateTime(2026, 1, 1),
-      values: const [0.12, 0.34, 0.56],
-    );
+    final sample = SensorReadingEntity(timestamp: DateTime(2026, 1, 1), values: const [0.12, 0.34, 0.56]);
 
     await tester.pumpWidget(
       GetMaterialApp(

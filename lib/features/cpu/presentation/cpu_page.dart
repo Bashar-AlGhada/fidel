@@ -27,12 +27,7 @@ class CpuPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        leading: showMenu
-            ? IconButton(
-                icon: const Icon(Icons.menu),
-                onPressed: shell?.openDrawer,
-              )
-            : null,
+        leading: showMenu ? IconButton(icon: const Icon(Icons.menu), onPressed: shell?.openDrawer) : null,
         title: Text('nav.cpu'.tr),
       ),
       body: cpu.when(
@@ -41,25 +36,17 @@ class CpuPage extends ConsumerWidget {
           return ListView(
             padding: EdgeInsets.all(tokens.space3),
             children: [
-              Text(
-                '$percent%',
-                style: Theme.of(context).textTheme.displaySmall,
-              ),
+              Text('$percent%', style: Theme.of(context).textTheme.displaySmall),
               SizedBox(height: tokens.space3),
-              RepaintBoundary(
-                child: LinearProgressIndicator(value: v.usage.value),
-              ),
+              RepaintBoundary(child: LinearProgressIndicator(value: v.usage.value)),
               SizedBox(height: tokens.space3),
               Text('Cores: ${v.cores}'),
             ],
           );
         },
         loading: () => const AppLoadingState(),
-        error: (err, st) => AppErrorState(
-          title: 'availability.unavailable'.tr,
-          actionLabel: 'action.retry'.tr,
-          onAction: () => ref.invalidate(cpuStreamProvider),
-        ),
+        error: (err, st) =>
+            AppErrorState(title: 'availability.unavailable'.tr, actionLabel: 'action.retry'.tr, onAction: () => ref.invalidate(cpuStreamProvider)),
       ),
     );
   }

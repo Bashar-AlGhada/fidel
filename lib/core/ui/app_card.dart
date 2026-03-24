@@ -3,13 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/theme_tokens.dart';
 
 class AppCard extends StatelessWidget {
-  const AppCard({
-    required this.child,
-    this.onTap,
-    this.padding,
-    this.margin,
-    super.key,
-  });
+  const AppCard({required this.child, this.onTap, this.padding, this.margin, super.key});
 
   final Widget child;
   final VoidCallback? onTap;
@@ -19,26 +13,16 @@ class AppCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<ThemeTokensExtension>()!.tokens;
-    final content = Padding(
-      padding: padding ?? EdgeInsets.all(tokens.space2),
-      child: child,
-    );
+    final content = Padding(padding: padding ?? EdgeInsets.all(tokens.space2), child: child);
 
     if (onTap == null) {
-      return Card(
-        margin: margin,
-        child: content,
-      );
+      return Card(margin: margin, child: content);
     }
 
     return Card(
       margin: margin,
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        borderRadius: tokens.cardBorderRadius,
-        onTap: onTap,
-        child: content,
-      ),
+      child: InkWell(borderRadius: tokens.cardBorderRadius, onTap: onTap, child: content),
     );
   }
 }

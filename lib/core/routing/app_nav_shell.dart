@@ -87,39 +87,25 @@ class _AppNavShellState extends State<AppNavShell> {
                   children: [
                     Container(
                       padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                      ),
+                      decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHighest),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
                             children: [
-                              Icon(
-                                Icons.insights_outlined,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
+                              Icon(Icons.insights_outlined, color: Theme.of(context).colorScheme.primary),
                               const SizedBox(width: 10),
-                              Text(
-                                'Fidel',
-                                style: Theme.of(context).textTheme.titleLarge,
-                              ),
+                              Text('Fidel', style: Theme.of(context).textTheme.titleLarge),
                             ],
                           ),
                           const SizedBox(height: 6),
-                          Text(
-                            'Device diagnostics and profiling',
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
+                          Text('Device diagnostics and profiling', style: Theme.of(context).textTheme.bodyMedium),
                         ],
                       ),
                     ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                      child: Text(
-                        'Main',
-                        style: Theme.of(context).textTheme.labelLarge,
-                      ),
+                      child: Text('Main', style: Theme.of(context).textTheme.labelLarge),
                     ),
                     ListTile(
                       leading: const Icon(Icons.dashboard_outlined),
@@ -168,10 +154,7 @@ class _AppNavShellState extends State<AppNavShell> {
                     ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                      child: Text(
-                        'Preferences',
-                        style: Theme.of(context).textTheme.labelLarge,
-                      ),
+                      child: Text('Preferences', style: Theme.of(context).textTheme.labelLarge),
                     ),
                     const Divider(),
                     ListTile(

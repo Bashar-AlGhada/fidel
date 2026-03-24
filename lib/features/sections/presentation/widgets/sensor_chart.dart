@@ -153,11 +153,7 @@ class _SensorChartPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final textStyle = TextStyle(
-      color: colorScheme.onSurfaceVariant,
-      fontSize: 11,
-      height: 1.1,
-    );
+    final textStyle = TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 11, height: 1.1);
     final r = tokens.radiusSm;
     final bg = Paint()..color = colorScheme.surfaceContainerHighest;
     canvas.drawRRect(RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(r)), bg);
@@ -178,38 +174,10 @@ class _SensorChartPainter extends CustomPainter {
       canvas.drawLine(Offset(left, y), Offset(left + w, y), gridPaint);
     }
 
-    _paintLabel(
-      canvas: canvas,
-      text: _compact(maxY),
-      style: textStyle,
-      dx: tokens.space1,
-      dy: top - 2,
-      maxWidth: yLabelWidth - tokens.space1,
-    );
-    _paintLabel(
-      canvas: canvas,
-      text: _compact(minY),
-      style: textStyle,
-      dx: tokens.space1,
-      dy: top + h - 10,
-      maxWidth: yLabelWidth - tokens.space1,
-    );
-    _paintLabel(
-      canvas: canvas,
-      text: '0',
-      style: textStyle,
-      dx: left,
-      dy: top + h + 4,
-      maxWidth: 32,
-    );
-    _paintLabel(
-      canvas: canvas,
-      text: '${samples.length - 1}',
-      style: textStyle,
-      dx: left + w - 18,
-      dy: top + h + 4,
-      maxWidth: 26,
-    );
+    _paintLabel(canvas: canvas, text: _compact(maxY), style: textStyle, dx: tokens.space1, dy: top - 2, maxWidth: yLabelWidth - tokens.space1);
+    _paintLabel(canvas: canvas, text: _compact(minY), style: textStyle, dx: tokens.space1, dy: top + h - 10, maxWidth: yLabelWidth - tokens.space1);
+    _paintLabel(canvas: canvas, text: '0', style: textStyle, dx: left, dy: top + h + 4, maxWidth: 32);
+    _paintLabel(canvas: canvas, text: '${samples.length - 1}', style: textStyle, dx: left + w - 18, dy: top + h + 4, maxWidth: 26);
 
     final colors = <Color>[colorScheme.primary, colorScheme.tertiary, colorScheme.secondary, colorScheme.error];
 
@@ -274,9 +242,7 @@ class _SensorChartPainter extends CustomPainter {
 
   String _compact(double value) {
     final fixed = value.toStringAsFixed(2);
-    return fixed.contains('.')
-        ? fixed.replaceFirst(RegExp(r'0+$'), '').replaceFirst(RegExp(r'\.$'), '')
-        : fixed;
+    return fixed.contains('.') ? fixed.replaceFirst(RegExp(r'0+$'), '').replaceFirst(RegExp(r'\.$'), '') : fixed;
   }
 
   @override

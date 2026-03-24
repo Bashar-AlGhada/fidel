@@ -23,9 +23,7 @@ class MemoryPage extends ConsumerWidget {
       });
     }
     final mem = ref.watch(memoryStreamProvider);
-    final prefs = ref
-        .watch(unitPreferencesStreamProvider)
-        .maybeWhen(data: (p) => p, orElse: () => UnitPreferences.defaults);
+    final prefs = ref.watch(unitPreferencesStreamProvider).maybeWhen(data: (p) => p, orElse: () => UnitPreferences.defaults);
     final formatter = ref.watch(unitsFormatterProvider);
     final shell = AppNavShellScope.maybeOf(context);
     final showMenu = shell?.hasDrawer == true;
@@ -33,12 +31,7 @@ class MemoryPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        leading: showMenu
-            ? IconButton(
-                icon: const Icon(Icons.menu),
-                onPressed: shell?.openDrawer,
-              )
-            : null,
+        leading: showMenu ? IconButton(icon: const Icon(Icons.menu), onPressed: shell?.openDrawer) : null,
         title: Text('nav.memory'.tr),
       ),
       body: mem.when(
@@ -47,48 +40,19 @@ class MemoryPage extends ConsumerWidget {
           return ListView(
             padding: EdgeInsets.all(tokens.space3),
             children: [
-              Text(
-                '$usedPct%',
-                style: Theme.of(context).textTheme.displaySmall,
-              ),
+              Text('$usedPct%', style: Theme.of(context).textTheme.displaySmall),
               SizedBox(height: tokens.space3),
-              RepaintBoundary(
-                child: LinearProgressIndicator(value: m.usedRatio),
-              ),
+              RepaintBoundary(child: LinearProgressIndicator(value: m.usedRatio)),
               SizedBox(height: tokens.space3),
-              Text(
-                'memory.used'.trParams({
-                  'value': formatter.formatBytes(
-                    bytes: m.usedBytes,
-                    base: prefs.dataSizeBase,
-                  ),
-                }),
-              ),
-              Text(
-                'memory.available'.trParams({
-                  'value': formatter.formatBytes(
-                    bytes: m.availBytes,
-                    base: prefs.dataSizeBase,
-                  ),
-                }),
-              ),
-              Text(
-                'memory.total'.trParams({
-                  'value': formatter.formatBytes(
-                    bytes: m.totalBytes,
-                    base: prefs.dataSizeBase,
-                  ),
-                }),
-              ),
+              Text('memory.used'.trParams({'value': formatter.formatBytes(bytes: m.usedBytes, base: prefs.dataSizeBase)})),
+              Text('memory.available'.trParams({'value': formatter.formatBytes(bytes: m.availBytes, base: prefs.dataSizeBase)})),
+              Text('memory.total'.trParams({'value': formatter.formatBytes(bytes: m.totalBytes, base: prefs.dataSizeBase)})),
             ],
           );
         },
         loading: () => const AppLoadingState(),
-        error: (err, st) => AppErrorState(
-          title: 'availability.unavailable'.tr,
-          actionLabel: 'action.retry'.tr,
-          onAction: () => ref.invalidate(memoryStreamProvider),
-        ),
+        error: (err, st) =>
+            AppErrorState(title: 'availability.unavailable'.tr, actionLabel: 'action.retry'.tr, onAction: () => ref.invalidate(memoryStreamProvider)),
       ),
     );
   }

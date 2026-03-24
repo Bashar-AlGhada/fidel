@@ -5,10 +5,7 @@ import '../../domain/entities/info/info_item_entity.dart';
 import '../../domain/entities/info/info_section_entity.dart';
 
 class InfoSectionMapper {
-  InfoSectionEntity deviceAndBuild({
-    required Map<String, dynamic> device,
-    required Map<String, dynamic> build,
-  }) {
+  InfoSectionEntity deviceAndBuild({required Map<String, dynamic> device, required Map<String, dynamic> build}) {
     return InfoSectionEntity(
       id: 'device-build',
       titleKey: 'section.deviceBuild',
@@ -91,11 +88,7 @@ class InfoSectionMapper {
   }
 
   InfoSectionEntity cameras(Map<String, dynamic> data) {
-    return InfoSectionEntity(
-      id: 'cameras',
-      titleKey: 'section.cameras',
-      items: [_item('cameras.cameras', data['cameras'])],
-    );
+    return InfoSectionEntity(id: 'cameras', titleKey: 'section.cameras', items: [_item('cameras.cameras', data['cameras'])]);
   }
 
   InfoSectionEntity cellularSim(Map<String, dynamic> data) {
@@ -132,11 +125,7 @@ class InfoSectionMapper {
   }
 
   InfoSectionEntity codecs(Map<String, dynamic> data) {
-    return InfoSectionEntity(
-      id: 'codecs',
-      titleKey: 'section.codecs',
-      items: [_item('codecs.codecs', data['codecs'])],
-    );
+    return InfoSectionEntity(id: 'codecs', titleKey: 'section.codecs', items: [_item('codecs.codecs', data['codecs'])]);
   }
 
   InfoSectionEntity widiMiracast(Map<String, dynamic> data) {
@@ -163,17 +152,8 @@ class InfoSectionMapper {
     );
   }
 
-  InfoSectionEntity unavailable({
-    required String id,
-    required String titleKey,
-    InfoAvailability availability = InfoAvailability.notSupported,
-  }) {
-    return InfoSectionEntity(
-      id: id,
-      titleKey: titleKey,
-      items: const [],
-      availability: availability,
-    );
+  InfoSectionEntity unavailable({required String id, required String titleKey, InfoAvailability availability = InfoAvailability.notSupported}) {
+    return InfoSectionEntity(id: id, titleKey: titleKey, items: const [], availability: availability);
   }
 
   InfoItemEntity _item(String labelKey, Object? value) {
@@ -199,21 +179,14 @@ class InfoSectionMapper {
 
   String? _formatRefreshRates(Object? value) {
     if (value is! List) return null;
-    final formatted = value
-        .map(_asDouble)
-        .whereType<double>()
-        .where((v) => v.isFinite)
-        .toList(growable: false);
+    final formatted = value.map(_asDouble).whereType<double>().where((v) => v.isFinite).toList(growable: false);
     if (formatted.isEmpty) return null;
     return '${formatted.map(_toCompactNumber).join(', ')} Hz';
   }
 
   List<Map<String, dynamic>>? _normalizeThermalTemperatures(Object? raw) {
     if (raw is List) {
-      final items = raw
-          .whereType<Map>()
-          .map((entry) => entry.cast<String, dynamic>())
-          .toList(growable: false);
+      final items = raw.whereType<Map>().map((entry) => entry.cast<String, dynamic>()).toList(growable: false);
       return items.isEmpty ? null : items;
     }
 
@@ -223,20 +196,12 @@ class InfoSectionMapper {
 
     final battery = _asDouble(map['batteryTempC']);
     if (battery != null && battery.isFinite) {
-      rows.add(<String, dynamic>{
-        'name': 'Battery',
-        'type': 'battery',
-        'valueC': battery,
-      });
+      rows.add(<String, dynamic>{'name': 'Battery', 'type': 'battery', 'valueC': battery});
     }
 
     final cpu = _asDouble(map['cpuTempC']);
     if (cpu != null && cpu.isFinite) {
-      rows.add(<String, dynamic>{
-        'name': 'CPU',
-        'type': 'cpu',
-        'valueC': cpu,
-      });
+      rows.add(<String, dynamic>{'name': 'CPU', 'type': 'cpu', 'valueC': cpu});
     }
 
     return rows.isEmpty ? null : rows;
@@ -252,9 +217,7 @@ class InfoSectionMapper {
 
   String _toCompactNumber(double value) {
     final fixed = value.toStringAsFixed(2);
-    return fixed.contains('.')
-        ? fixed.replaceFirst(RegExp(r'0+$'), '').replaceFirst(RegExp(r'\.$'), '')
-        : fixed;
+    return fixed.contains('.') ? fixed.replaceFirst(RegExp(r'0+$'), '').replaceFirst(RegExp(r'\.$'), '') : fixed;
   }
 
   Map<String, dynamic> _coerceMap(Object? value) {

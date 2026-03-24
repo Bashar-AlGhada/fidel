@@ -24,7 +24,7 @@ class AppSection extends StatelessWidget {
     final tokens = theme.extension<ThemeTokensExtension>()!.tokens;
 
     return Padding(
-      padding: padding ?? EdgeInsets.all(tokens.space3),
+      padding: padding ?? EdgeInsets.all(tokens.space2),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -49,7 +49,7 @@ class AppSection extends StatelessWidget {
             ],
           ),
           if (child != null) ...[
-            SizedBox(height: tokens.space3),
+            SizedBox(height: tokens.space2),
             child!,
           ],
         ],

@@ -22,7 +22,7 @@ class BatteryPage extends ConsumerWidget {
     }
     final bat = ref.watch(batteryStreamProvider);
     final shell = AppNavShellScope.maybeOf(context);
-    final showMenu = shell?.hasDrawer == true && !Navigator.of(context).canPop();
+    final showMenu = shell?.hasDrawer == true;
     final tokens = Theme.of(context).extension<ThemeTokensExtension>()!.tokens;
 
     return Scaffold(

@@ -8,6 +8,7 @@ import '../../../application/providers/export_providers.dart';
 import '../../../application/providers/system_providers.dart';
 import '../../../application/sampling/active_module.dart';
 import '../../../application/sampling/sampling_provider.dart';
+import '../../../core/theme/theme_tokens.dart';
 import '../../../domain/entities/info/info_item_entity.dart';
 import '../../../domain/entities/info/info_section_entity.dart';
 import '../../../features/export/presentation/export_format_sheet.dart';
@@ -77,7 +78,11 @@ class _CodecsSectionPageState extends ConsumerState<CodecsSectionPage> {
   }
 
   Widget _buildLoaded(BuildContext context, InfoSectionEntity section) {
+    final tokens = Theme.of(context).extension<ThemeTokensExtension>()!.tokens;
     final codecs = _extractCodecs(section);
+    final encodersCount = codecs.where(_isEncoder).length;
+    final decodersCount = codecs.length - encodersCount;
+
     final filtered = codecs
         .where((codec) {
           if (_filter != CodecFilter.all) {
@@ -95,8 +100,23 @@ class _CodecsSectionPageState extends ConsumerState<CodecsSectionPage> {
       onRefresh: () =>
           ref.read(getSectionMetadataProvider)('codecs', forceRefresh: true),
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(tokens.space2),
         children: [
+          Card(
+            child: Padding(
+              padding: EdgeInsets.all(tokens.space2),
+              child: Wrap(
+                spacing: tokens.space2,
+                runSpacing: tokens.space1,
+                children: [
+                  _SummaryBadge(label: 'Total', value: '${codecs.length}'),
+                  _SummaryBadge(label: 'Encoders', value: '$encodersCount'),
+                  _SummaryBadge(label: 'Decoders', value: '$decodersCount'),
+                ],
+              ),
+            ),
+          ),
+          SizedBox(height: tokens.space2),
           TextField(
             decoration: InputDecoration(
               prefixIcon: const Icon(Icons.search),
@@ -105,10 +125,10 @@ class _CodecsSectionPageState extends ConsumerState<CodecsSectionPage> {
             ),
             onChanged: (v) => setState(() => _query = v),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: tokens.space2),
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: tokens.space1,
+            runSpacing: tokens.space1,
             children: [
               _FilterChip(
                 selected: _filter == CodecFilter.all,
@@ -127,11 +147,11 @@ class _CodecsSectionPageState extends ConsumerState<CodecsSectionPage> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: tokens.space2),
           if (filtered.isEmpty)
             Card(
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(tokens.space2),
                 child: Text('search.noResults'.tr),
               ),
             )
@@ -202,6 +222,26 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
+class _SummaryBadge extends StatelessWidget {
+  const _SummaryBadge({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text('$label: $value', style: theme.textTheme.labelLarge),
+    );
+  }
+}
+
 class _CodecCard extends StatelessWidget {
   const _CodecCard({required this.codec});
 
@@ -209,6 +249,7 @@ class _CodecCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<ThemeTokensExtension>()!.tokens;
     final encoder = const JsonEncoder.withIndent('  ');
     final name = (codec['name'] ?? codec['codecName'] ?? codec['id'])
         ?.toString();
@@ -216,6 +257,10 @@ class _CodecCard extends StatelessWidget {
         (codec['isEncoder'] ?? codec['encoder']) == true ||
         codec['isEncoder']?.toString().toLowerCase() == 'true';
     final label = isEncoder ? 'filter.encoders'.tr : 'filter.decoders'.tr;
+    final mimeTypes = _listSummary(codec['supportedTypes'] ?? codec['types']);
+    final aliases = _listSummary(codec['aliases']);
+    final hardware = codec['isHardwareAccelerated']?.toString();
+    final software = codec['isSoftwareOnly']?.toString();
 
     return Card(
       child: ExpansionTile(
@@ -223,9 +268,58 @@ class _CodecCard extends StatelessWidget {
         subtitle: Text(label),
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: SelectableText(encoder.convert(codec)),
+            padding: EdgeInsets.fromLTRB(tokens.space2, 0, tokens.space2, tokens.space2),
+            child: Column(
+              children: [
+                _SpecRow(label: 'Type', value: label),
+                _SpecRow(label: 'MIME types', value: mimeTypes),
+                _SpecRow(label: 'Aliases', value: aliases),
+                _SpecRow(label: 'Hardware accelerated', value: hardware),
+                _SpecRow(label: 'Software only', value: software),
+                ExpansionTile(
+                  tilePadding: EdgeInsets.zero,
+                  childrenPadding: EdgeInsets.zero,
+                  title: const Text('Advanced raw payload'),
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: SelectableText(encoder.convert(codec)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
+        ],
+      ),
+    );
+  }
+
+  String? _listSummary(Object? value) {
+    if (value is! List) return value?.toString();
+    final values = value.map((e) => e.toString()).where((e) => e.isNotEmpty);
+    final joined = values.join(', ');
+    return joined.isEmpty ? null : joined;
+  }
+}
+
+class _SpecRow extends StatelessWidget {
+  const _SpecRow({required this.label, required this.value});
+
+  final String label;
+  final String? value;
+
+  @override
+  Widget build(BuildContext context) {
+    if (value == null || value!.trim().isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(width: 130, child: Text(label)),
+          const SizedBox(width: 8),
+          Expanded(child: Text(value!)),
         ],
       ),
     );

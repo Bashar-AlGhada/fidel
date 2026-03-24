@@ -62,6 +62,40 @@ class AndroidBridge {
     return const {};
   }
 
+  static Map<String, dynamic> _coerceEventData(Object? value) {
+    final map = _coerceMap(value);
+    if (map['ok'] == true) {
+      final data = map['data'];
+      if (data is Map) return data.cast<String, dynamic>();
+    }
+    return map;
+  }
+
+  static Stream<Map<String, dynamic>> _resultStream(EventChannel channel) {
+    if (!_isAndroid) return const Stream.empty();
+
+    return channel.receiveBroadcastStream().transform(
+      StreamTransformer<Object?, Map<String, dynamic>>.fromHandlers(
+        handleData: (data, sink) => sink.add(_coerceEventData(data)),
+        handleError: (error, stack, sink) {
+          final payload = switch (error) {
+            PlatformException e => _err(
+              code: e.code,
+              message: e.message,
+              details: e.details,
+            ),
+            MissingPluginException e => _err(
+              code: 'missing_plugin',
+              message: e.message ?? 'Missing platform implementation.',
+            ),
+            _ => _err(code: 'stream_error', message: error.toString()),
+          };
+          sink.add(payload);
+        },
+      ),
+    );
+  }
+
   static Future<Map<String, dynamic>> _invokeResultMap(
     String method, {
     Object? arguments,
@@ -196,23 +230,14 @@ class AndroidBridge {
   }
 
   static Stream<Map<String, dynamic>> cpuStream() {
-    if (!_isAndroid) return const Stream.empty();
-    return _cpuEvents.receiveBroadcastStream().map(
-      (e) => (e as Map).cast<String, dynamic>(),
-    );
+    return _resultStream(_cpuEvents);
   }
 
   static Stream<Map<String, dynamic>> memoryStream() {
-    if (!_isAndroid) return const Stream.empty();
-    return _memoryEvents.receiveBroadcastStream().map(
-      (e) => (e as Map).cast<String, dynamic>(),
-    );
+    return _resultStream(_memoryEvents);
   }
 
   static Stream<Map<String, dynamic>> batteryStream() {
-    if (!_isAndroid) return const Stream.empty();
-    return _batteryEvents.receiveBroadcastStream().map(
-      (e) => (e as Map).cast<String, dynamic>(),
-    );
+    return _resultStream(_batteryEvents);
   }
 }

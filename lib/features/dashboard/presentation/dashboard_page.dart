@@ -41,7 +41,7 @@ class DashboardPage extends ConsumerWidget {
     final theme = Theme.of(context);
     final tokens = theme.extension<ThemeTokensExtension>()!.tokens;
     final shell = AppNavShellScope.maybeOf(context);
-    final showMenu = shell?.hasDrawer == true && !Navigator.of(context).canPop();
+    final showMenu = shell?.hasDrawer == true;
 
     return Scaffold(
       appBar: AppBar(
@@ -59,7 +59,7 @@ class DashboardPage extends ConsumerWidget {
               : 1;
 
           return ListView(
-            padding: EdgeInsets.all(tokens.space3),
+            padding: EdgeInsets.all(tokens.space2),
             children: [
               AppSection(
                 title: 'dashboard.liveTitle'.tr,
@@ -115,7 +115,7 @@ class DashboardPage extends ConsumerWidget {
                   ],
                 ),
               ),
-              SizedBox(height: tokens.space2),
+              SizedBox(height: tokens.space1),
               AppSection(
                 title: 'dashboard.exploreTitle'.tr,
                 subtitle: 'dashboard.browseSections'.tr,
@@ -184,11 +184,17 @@ class DashboardPage extends ConsumerWidget {
   double? _maxTempCFromJson(String raw) {
     try {
       final decoded = jsonDecode(raw);
-      if (decoded is! List) return null;
+      final items = switch (decoded) {
+        List list => list.whereType<Map>().map((entry) => entry.cast<String, dynamic>()),
+        Map map => map.entries.map((entry) {
+          final value = entry.value;
+          if (value is Map) return value.cast<String, dynamic>();
+          return <String, dynamic>{'name': entry.key, 'valueC': value};
+        }),
+        _ => const Iterable<Map<String, dynamic>>.empty(),
+      };
       double? max;
-      for (final entry in decoded) {
-        if (entry is! Map) continue;
-        final map = entry.cast<String, dynamic>();
+      for (final map in items) {
         final value = map['valueC'] ?? map['value'] ?? map['tempC'] ?? map['celsius'];
         final numValue = switch (value) {
           num v => v.toDouble(),

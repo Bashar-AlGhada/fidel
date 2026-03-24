@@ -34,7 +34,7 @@ class _SectionsPageState extends ConsumerState<SectionsPage> {
     final theme = Theme.of(context);
     final tokens = theme.extension<ThemeTokensExtension>()!.tokens;
     final shell = AppNavShellScope.maybeOf(context);
-    final showMenu = shell?.hasDrawer == true && !Navigator.of(context).canPop();
+    final showMenu = shell?.hasDrawer == true;
 
     final query = _query.trim().toLowerCase();
     final sections = query.isEmpty
@@ -52,7 +52,7 @@ class _SectionsPageState extends ConsumerState<SectionsPage> {
         title: Text('nav.sections'.tr),
       ),
       body: Padding(
-        padding: EdgeInsets.all(tokens.space3),
+        padding: EdgeInsets.all(tokens.space2),
         child: Column(
           children: [
             SearchBar(
@@ -60,7 +60,7 @@ class _SectionsPageState extends ConsumerState<SectionsPage> {
               onChanged: (v) => setState(() => _query = v),
               trailing: [if (_query.isNotEmpty) IconButton(icon: const Icon(Icons.close), onPressed: () => setState(() => _query = ''))],
             ),
-            SizedBox(height: tokens.space3),
+            SizedBox(height: tokens.space2),
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) {
@@ -74,8 +74,8 @@ class _SectionsPageState extends ConsumerState<SectionsPage> {
                   return GridView.builder(
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: columns,
-                      crossAxisSpacing: tokens.space3,
-                      mainAxisSpacing: tokens.space3,
+                      crossAxisSpacing: tokens.space2,
+                      mainAxisSpacing: tokens.space2,
                       childAspectRatio: columns == 1 ? 3.2 : 2.6,
                     ),
                     itemCount: sections.length,

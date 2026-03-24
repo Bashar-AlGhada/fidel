@@ -28,7 +28,7 @@ class MemoryPage extends ConsumerWidget {
         .maybeWhen(data: (p) => p, orElse: () => UnitPreferences.defaults);
     final formatter = ref.watch(unitsFormatterProvider);
     final shell = AppNavShellScope.maybeOf(context);
-    final showMenu = shell?.hasDrawer == true && !Navigator.of(context).canPop();
+    final showMenu = shell?.hasDrawer == true;
     final tokens = Theme.of(context).extension<ThemeTokensExtension>()!.tokens;
 
     return Scaffold(

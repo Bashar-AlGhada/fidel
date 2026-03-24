@@ -59,4 +59,24 @@ class UnitsFormatterImpl implements UnitsFormatter {
     final prefix = idx >= 0 ? units[idx] : '';
     return '${value.toStringAsFixed(decimals)} $prefix$suffix';
   }
+
+  @override
+  String formatElectricCurrent({required double microAmps}) {
+    final absUa = microAmps.abs();
+    if (absUa >= 1000000) {
+      final amps = microAmps / 1000000.0;
+      return '${amps.toStringAsFixed(_decimalsFor(absUa / 1000000.0))} A';
+    }
+    if (absUa >= 1000) {
+      final milliAmps = microAmps / 1000.0;
+      return '${milliAmps.toStringAsFixed(_decimalsFor(absUa / 1000.0))} mA';
+    }
+    return '${microAmps.toStringAsFixed(_decimalsFor(absUa))} uA';
+  }
+
+  int _decimalsFor(double value) {
+    if (value >= 100) return 0;
+    if (value >= 10) return 1;
+    return 2;
+  }
 }

@@ -175,11 +175,20 @@ class _ThermalView extends StatelessWidget {
 
     try {
       final decoded = jsonDecode(raw);
-      if (decoded is! List) return const [];
-      return decoded
+      final rows = switch (decoded) {
+        List list => list.whereType<Map>().map((rawMap) => rawMap.cast<String, dynamic>()),
+        Map map => map.entries.map((entry) {
+          final value = entry.value;
+          if (value is Map) return value.cast<String, dynamic>();
+          return <String, dynamic>{'name': entry.key, 'valueC': value};
+        }),
+        _ => const Iterable<Map<String, dynamic>>.empty(),
+      };
+
+      return rows
           .whereType<Map>()
           .map((rawMap) {
-            final map = rawMap.cast<String, dynamic>();
+            final map = rawMap;
             final value =
                 map['valueC'] ?? map['value'] ?? map['tempC'] ?? map['celsius'];
             final numValue = switch (value) {

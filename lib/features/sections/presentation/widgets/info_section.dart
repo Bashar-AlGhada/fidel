@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -143,6 +145,11 @@ class _InfoItemCard extends StatelessWidget {
 
   String? _formatTextValue(String labelKey, String raw) {
     if (raw.trim().isEmpty) return null;
+    final parsedJson = _formatJsonText(raw);
+    if (parsedJson != null) return parsedJson;
+    if (labelKey == 'display.refreshRatesHz') {
+      return raw;
+    }
     if (labelKey.contains('Bytes') || labelKey.endsWith('Bytes')) {
       final bytes = int.tryParse(raw);
       if (bytes == null) return null;
@@ -158,7 +165,53 @@ class _InfoItemCard extends StatelessWidget {
       if (mv == null) return null;
       return '${(mv / 1000.0).toStringAsFixed(3)} V';
     }
+    if (labelKey.endsWith('currentNowUa') ||
+        labelKey.endsWith('currentAverageUa')) {
+      final ua = double.tryParse(raw);
+      if (ua == null) return null;
+      return formatter.formatElectricCurrent(microAmps: ua);
+    }
     return null;
+  }
+
+  String? _formatJsonText(String raw) {
+    final trimmed = raw.trim();
+    if (!(trimmed.startsWith('{') || trimmed.startsWith('['))) return null;
+
+    try {
+      final decoded = jsonDecode(trimmed);
+      if (decoded is Map) {
+        final entries = decoded.entries.map((entry) {
+          final value = _compactJsonValue(entry.value);
+          return '${entry.key}: $value';
+        }).toList(growable: false);
+        return entries.join('\n');
+      }
+
+      if (decoded is List) {
+        if (decoded.isEmpty) return '[]';
+        if (decoded.every((e) => e is num || e is bool || e is String)) {
+          return decoded.join(', ');
+        }
+        return 'List (${decoded.length} items)';
+      }
+    } catch (_) {
+      return null;
+    }
+
+    return null;
+  }
+
+  String _compactJsonValue(Object? value) {
+    return switch (value) {
+      null => 'null',
+      String v => v,
+      num v => v.toString(),
+      bool v => v.toString(),
+      Map v => 'Map (${v.length} fields)',
+      List v => 'List (${v.length} items)',
+      _ => value.toString(),
+    };
   }
 
   String _availabilityLabel(InfoAvailability availability) {

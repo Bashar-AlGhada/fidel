@@ -66,7 +66,7 @@ class _SensorChartState extends State<SensorChart> {
       }
     }
 
-    if (dims == 0 || validPoints < 2) {
+    if (samples.length < 2 || dims == 0 || validPoints < 2) {
       return LayoutBuilder(
         builder: (context, constraints) {
           final height = constraints.maxHeight.isFinite ? math.min(constraints.maxHeight, widget.height) : widget.height;
@@ -153,14 +153,21 @@ class _SensorChartPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    final textStyle = TextStyle(
+      color: colorScheme.onSurfaceVariant,
+      fontSize: 11,
+      height: 1.1,
+    );
     final r = tokens.radiusSm;
     final bg = Paint()..color = colorScheme.surfaceContainerHighest;
     canvas.drawRRect(RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(r)), bg);
 
-    final left = tokens.space2;
+    final yLabelWidth = 42.0;
+    final xLabelHeight = 18.0;
+    final left = tokens.space2 + yLabelWidth;
     final top = tokens.space2;
-    final w = size.width - (tokens.space2 * 2);
-    final h = size.height - (tokens.space2 * 2);
+    final w = size.width - left - tokens.space2;
+    final h = size.height - top - tokens.space2 - xLabelHeight;
     if (w <= 0 || h <= 0) return;
 
     final gridPaint = Paint()
@@ -170,6 +177,39 @@ class _SensorChartPainter extends CustomPainter {
       final y = top + (i / 4.0) * h;
       canvas.drawLine(Offset(left, y), Offset(left + w, y), gridPaint);
     }
+
+    _paintLabel(
+      canvas: canvas,
+      text: _compact(maxY),
+      style: textStyle,
+      dx: tokens.space1,
+      dy: top - 2,
+      maxWidth: yLabelWidth - tokens.space1,
+    );
+    _paintLabel(
+      canvas: canvas,
+      text: _compact(minY),
+      style: textStyle,
+      dx: tokens.space1,
+      dy: top + h - 10,
+      maxWidth: yLabelWidth - tokens.space1,
+    );
+    _paintLabel(
+      canvas: canvas,
+      text: '0',
+      style: textStyle,
+      dx: left,
+      dy: top + h + 4,
+      maxWidth: 32,
+    );
+    _paintLabel(
+      canvas: canvas,
+      text: '${samples.length - 1}',
+      style: textStyle,
+      dx: left + w - 18,
+      dy: top + h + 4,
+      maxWidth: 26,
+    );
 
     final colors = <Color>[colorScheme.primary, colorScheme.tertiary, colorScheme.secondary, colorScheme.error];
 
@@ -213,6 +253,30 @@ class _SensorChartPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = tokens.strokeWidth;
     canvas.drawRRect(RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(r)), border);
+  }
+
+  void _paintLabel({
+    required Canvas canvas,
+    required String text,
+    required TextStyle style,
+    required double dx,
+    required double dy,
+    required double maxWidth,
+  }) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+      ellipsis: '...',
+    )..layout(maxWidth: maxWidth);
+    painter.paint(canvas, Offset(dx, dy));
+  }
+
+  String _compact(double value) {
+    final fixed = value.toStringAsFixed(2);
+    return fixed.contains('.')
+        ? fixed.replaceFirst(RegExp(r'0+$'), '').replaceFirst(RegExp(r'\.$'), '')
+        : fixed;
   }
 
   @override

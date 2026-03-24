@@ -32,7 +32,7 @@ class SettingsPage extends ConsumerWidget {
     final theme = Theme.of(context);
     final tokens = theme.extension<ThemeTokensExtension>()!.tokens;
     final shell = AppNavShellScope.maybeOf(context);
-    final showMenu = shell?.hasDrawer == true && !Navigator.of(context).canPop();
+    final showMenu = shell?.hasDrawer == true;
 
     return Scaffold(
       appBar: AppBar(
@@ -40,7 +40,7 @@ class SettingsPage extends ConsumerWidget {
         title: Text('nav.settings'.tr),
       ),
       body: ListView(
-        padding: EdgeInsets.all(tokens.space3),
+        padding: EdgeInsets.all(tokens.space2),
         children: [
           AppSection(
             title: 'settings.theme'.tr,
@@ -60,7 +60,7 @@ class SettingsPage extends ConsumerWidget {
               ),
             ),
           ),
-          SizedBox(height: tokens.space2),
+          SizedBox(height: tokens.space1),
           AppSection(
             title: 'settings.language'.tr,
             child: AppCard(
@@ -82,7 +82,7 @@ class SettingsPage extends ConsumerWidget {
               ),
             ),
           ),
-          SizedBox(height: tokens.space2),
+          SizedBox(height: tokens.space1),
           AppSection(
             title: 'settings.units'.tr,
             child: unitPrefs.when(

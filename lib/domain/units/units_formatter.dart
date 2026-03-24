@@ -13,4 +13,6 @@ abstract class UnitsFormatter {
     required RateUnit unit,
     required DataSizeBase base,
   });
+
+  String formatElectricCurrent({required double microAmps});
 }

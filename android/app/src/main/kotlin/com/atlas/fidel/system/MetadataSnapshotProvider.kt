@@ -125,11 +125,22 @@ class MetadataSnapshotProvider(private val context: Context) {
       try {
         val chars = cm.getCameraCharacteristics(cameraId)
         val lensFacing = chars.get(CameraCharacteristics.LENS_FACING)
+        val lensFacingLabel = when (lensFacing) {
+          CameraCharacteristics.LENS_FACING_FRONT -> "front"
+          CameraCharacteristics.LENS_FACING_BACK -> "back"
+          CameraCharacteristics.LENS_FACING_EXTERNAL -> "external"
+          else -> "unknown"
+        }
         val sensorOrientation = chars.get(CameraCharacteristics.SENSOR_ORIENTATION)
         val hardwareLevel = chars.get(CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL)
         val hasFlash = chars.get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
         val focalLengths = chars.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS)?.map { it.toDouble() } ?: emptyList()
         val apertures = chars.get(CameraCharacteristics.LENS_INFO_AVAILABLE_APERTURES)?.map { it.toDouble() } ?: emptyList()
+        val physicalCameraIds = if (Build.VERSION.SDK_INT >= 28) {
+          chars.physicalCameraIds.toList().sorted()
+        } else {
+          emptyList()
+        }
         val fpsRanges = chars.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES)?.map { range ->
           mapOf("min" to range.lower, "max" to range.upper)
         } ?: emptyList()
@@ -151,11 +162,13 @@ class MetadataSnapshotProvider(private val context: Context) {
         mapOf(
           "cameraId" to cameraId,
           "lensFacing" to lensFacing,
+          "lensFacingString" to lensFacingLabel,
           "sensorOrientation" to sensorOrientation,
           "hardwareLevel" to hardwareLevel,
           "hasFlash" to hasFlash,
           "focalLengthsMm" to focalLengths,
           "apertures" to apertures,
+          "physicalCameraIds" to physicalCameraIds,
           "fpsRanges" to fpsRanges,
           "outputs" to outputs,
         )

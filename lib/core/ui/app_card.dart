@@ -20,7 +20,7 @@ class AppCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<ThemeTokensExtension>()!.tokens;
     final content = Padding(
-      padding: padding ?? EdgeInsets.all(tokens.space3),
+      padding: padding ?? EdgeInsets.all(tokens.space2),
       child: child,
     );
 

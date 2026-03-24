@@ -42,6 +42,7 @@ class SectionsRepositoryImpl implements SectionsRepository {
   int _sensorsListenerCount = 0;
   Timer? _sensorsEmitTimer;
   bool _sensorsEmitScheduled = false;
+  bool _sensorsEmitPending = false;
   bool _diskSeededSensors = false;
   DateTime? _lastSensorsPersistAt;
 
@@ -246,6 +247,7 @@ class SectionsRepositoryImpl implements SectionsRepository {
     _sensorsEmitTimer?.cancel();
     _sensorsEmitTimer = null;
     _sensorsEmitScheduled = false;
+    _sensorsEmitPending = false;
   }
 
   void _handleSensorCapabilities(Map<String, dynamic> data) {
@@ -314,12 +316,20 @@ class SectionsRepositoryImpl implements SectionsRepository {
 
   void _scheduleEmitSensors() {
     if (_sensorsSubject == null) return;
-    if (_sensorsEmitScheduled) return;
+    if (_sensorsEmitScheduled) {
+      _sensorsEmitPending = true;
+      return;
+    }
+
     _sensorsEmitScheduled = true;
+    _sensorsSubject?.add(_buildSensorsSnapshot());
+
     _sensorsEmitTimer?.cancel();
-    _sensorsEmitTimer = Timer(const Duration(milliseconds: 50), () {
+    _sensorsEmitTimer = Timer(const Duration(milliseconds: 80), () {
       _sensorsEmitScheduled = false;
-      _sensorsSubject?.add(_buildSensorsSnapshot());
+      if (!_sensorsEmitPending) return;
+      _sensorsEmitPending = false;
+      _scheduleEmitSensors();
     });
   }
 

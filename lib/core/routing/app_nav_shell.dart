@@ -85,6 +85,42 @@ class _AppNavShellState extends State<AppNavShell> {
                 child: ListView(
                   padding: EdgeInsets.zero,
                   children: [
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.insights_outlined,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                'Fidel',
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Device diagnostics and profiling',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                      child: Text(
+                        'Main',
+                        style: Theme.of(context).textTheme.labelLarge,
+                      ),
+                    ),
                     ListTile(
                       leading: const Icon(Icons.dashboard_outlined),
                       title: Text('nav.dashboard'.tr),
@@ -129,6 +165,13 @@ class _AppNavShellState extends State<AppNavShell> {
                         Navigator.of(context).pop();
                         widget.onTap(4);
                       },
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                      child: Text(
+                        'Preferences',
+                        style: Theme.of(context).textTheme.labelLarge,
+                      ),
                     ),
                     const Divider(),
                     ListTile(

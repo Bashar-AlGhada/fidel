@@ -203,7 +203,15 @@ class _SensorTile extends StatelessWidget {
         leading: const Icon(Icons.sensors),
         title: Text(cap.name.isEmpty ? cap.key : cap.name),
         subtitle: Text('${cap.vendor} • type ${cap.type}'),
-        trailing: Text(latestText, textAlign: TextAlign.end),
+        trailing: SizedBox(
+          width: 120,
+          child: Text(
+            latestText,
+            textAlign: TextAlign.end,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
         onTap: onTap,
       ),
     );

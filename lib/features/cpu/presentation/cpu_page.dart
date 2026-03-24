@@ -22,7 +22,7 @@ class CpuPage extends ConsumerWidget {
     }
     final cpu = ref.watch(cpuStreamProvider);
     final shell = AppNavShellScope.maybeOf(context);
-    final showMenu = shell?.hasDrawer == true && !Navigator.of(context).canPop();
+    final showMenu = shell?.hasDrawer == true;
     final tokens = Theme.of(context).extension<ThemeTokensExtension>()!.tokens;
 
     return Scaffold(

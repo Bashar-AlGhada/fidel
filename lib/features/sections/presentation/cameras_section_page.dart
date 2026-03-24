@@ -8,6 +8,7 @@ import '../../../application/providers/export_providers.dart';
 import '../../../application/providers/system_providers.dart';
 import '../../../application/sampling/active_module.dart';
 import '../../../application/sampling/sampling_provider.dart';
+import '../../../core/theme/theme_tokens.dart';
 import '../../../domain/entities/info/info_item_entity.dart';
 import '../../../domain/entities/info/info_section_entity.dart';
 import '../../../features/export/presentation/export_format_sheet.dart';
@@ -77,7 +78,19 @@ class _CamerasSectionPageState extends ConsumerState<CamerasSectionPage> {
   }
 
   Widget _buildLoaded(BuildContext context, InfoSectionEntity section) {
+    final tokens = Theme.of(context).extension<ThemeTokensExtension>()!.tokens;
     final cameras = _extractCameras(section);
+    final totalCount = cameras.length;
+    final frontCount = cameras
+      .where((camera) => _cameraFacing(camera) == CameraFacingFilter.front)
+      .length;
+    final backCount = cameras
+      .where((camera) => _cameraFacing(camera) == CameraFacingFilter.back)
+      .length;
+    final externalCount = cameras
+      .where((camera) => _cameraFacing(camera) == CameraFacingFilter.external)
+      .length;
+
     final filtered = cameras
         .where((camera) {
           final facing = _cameraFacing(camera);
@@ -94,8 +107,24 @@ class _CamerasSectionPageState extends ConsumerState<CamerasSectionPage> {
       onRefresh: () =>
           ref.read(getSectionMetadataProvider)('cameras', forceRefresh: true),
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(tokens.space2),
         children: [
+          Card(
+            child: Padding(
+              padding: EdgeInsets.all(tokens.space2),
+              child: Wrap(
+                spacing: tokens.space2,
+                runSpacing: tokens.space1,
+                children: [
+                  _SummaryBadge(label: 'Total', value: '$totalCount'),
+                  _SummaryBadge(label: 'Front', value: '$frontCount'),
+                  _SummaryBadge(label: 'Back', value: '$backCount'),
+                  _SummaryBadge(label: 'External', value: '$externalCount'),
+                ],
+              ),
+            ),
+          ),
+          SizedBox(height: tokens.space2),
           TextField(
             decoration: InputDecoration(
               prefixIcon: const Icon(Icons.search),
@@ -104,10 +133,10 @@ class _CamerasSectionPageState extends ConsumerState<CamerasSectionPage> {
             ),
             onChanged: (v) => setState(() => _query = v),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: tokens.space2),
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: tokens.space1,
+            runSpacing: tokens.space1,
             children: [
               _FilterChip(
                 selected: _filter == CameraFacingFilter.all,
@@ -132,11 +161,11 @@ class _CamerasSectionPageState extends ConsumerState<CamerasSectionPage> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: tokens.space2),
           if (filtered.isEmpty)
             Card(
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(tokens.space2),
                 child: Text('search.noResults'.tr),
               ),
             )
@@ -170,18 +199,27 @@ class _CamerasSectionPageState extends ConsumerState<CamerasSectionPage> {
   }
 
   CameraFacingFilter _cameraFacing(Map<String, dynamic> camera) {
-    final raw =
-        (camera['lensFacing'] ??
-                camera['facing'] ??
-                camera['lens_facing'] ??
-                camera['lensFacingString'])
-            ?.toString()
-            .toLowerCase();
+    final rawValue =
+        camera['lensFacing'] ??
+        camera['facing'] ??
+        camera['lens_facing'] ??
+        camera['lensFacingString'];
+
+    if (rawValue is num) {
+      final v = rawValue.toInt();
+      if (v == 0) return CameraFacingFilter.front;
+      if (v == 1) return CameraFacingFilter.back;
+      return CameraFacingFilter.external;
+    }
+
+    final raw = rawValue?.toString().toLowerCase();
     if (raw == null) return CameraFacingFilter.external;
     if (raw.contains('front')) return CameraFacingFilter.front;
     if (raw.contains('back') || raw.contains('rear')) {
       return CameraFacingFilter.back;
     }
+    if (raw == '0') return CameraFacingFilter.front;
+    if (raw == '1') return CameraFacingFilter.back;
     return CameraFacingFilter.external;
   }
 
@@ -217,6 +255,26 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
+class _SummaryBadge extends StatelessWidget {
+  const _SummaryBadge({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text('$label: $value', style: theme.textTheme.labelLarge),
+    );
+  }
+}
+
 class _CameraCard extends StatelessWidget {
   const _CameraCard({required this.camera});
 
@@ -224,22 +282,121 @@ class _CameraCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<ThemeTokensExtension>()!.tokens;
     final encoder = const JsonEncoder.withIndent('  ');
     final id = (camera['cameraId'] ?? camera['id'] ?? camera['name'])
         ?.toString();
     final title = id == null || id.isEmpty ? 'Camera' : 'Camera $id';
+    final facing = (camera['lensFacingString'] ?? camera['lensFacing'] ?? camera['facing'])
+        ?.toString();
+    final level = camera['hardwareLevel']?.toString();
+    final focal = _numString(camera['focalLengthsMm'] ?? camera['focalLengths']);
+    final apertures = _numString(camera['apertures']);
+    final physicalIds = _listSummary(camera['physicalCameraIds']);
+    final capabilities = _listSummary(camera['capabilities']);
+    final outputs = _outputsSummary(camera['outputs']);
+    final fpsRanges = _fpsSummary(camera['fpsRanges']);
+    final hasFlash = camera['hasFlash']?.toString();
 
     return Card(
       child: ExpansionTile(
         title: Text(title),
-        subtitle: Text(
-          (camera['lensFacing'] ?? camera['facing'] ?? '').toString(),
-        ),
+        subtitle: Text(facing ?? 'Unknown facing'),
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: SelectableText(encoder.convert(camera)),
+            padding: EdgeInsets.fromLTRB(tokens.space2, 0, tokens.space2, tokens.space2),
+            child: Column(
+              children: [
+                _SpecRow(label: 'Facing', value: facing),
+                _SpecRow(label: 'Hardware level', value: level),
+                _SpecRow(label: 'Focal lengths', value: focal),
+                _SpecRow(label: 'Apertures', value: apertures),
+                _SpecRow(label: 'FPS ranges', value: fpsRanges),
+                _SpecRow(label: 'Outputs', value: outputs),
+                _SpecRow(label: 'Flash', value: hasFlash),
+                _SpecRow(label: 'Physical IDs', value: physicalIds),
+                _SpecRow(label: 'Capabilities', value: capabilities),
+                ExpansionTile(
+                  tilePadding: EdgeInsets.zero,
+                  childrenPadding: EdgeInsets.zero,
+                  title: const Text('Advanced raw payload'),
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: SelectableText(encoder.convert(camera)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
+        ],
+      ),
+    );
+  }
+
+  String? _listSummary(Object? value) {
+    if (value is! List) return value?.toString();
+    final values = value.map((e) => e.toString()).where((e) => e.isNotEmpty);
+    final joined = values.join(', ');
+    return joined.isEmpty ? null : joined;
+  }
+
+  String? _numString(Object? value) {
+    if (value is List) {
+      final parts = value
+          .whereType<num>()
+          .map((e) => e.toStringAsFixed(2).replaceFirst(RegExp(r'0+$'), '').replaceFirst(RegExp(r'\.$'), ''))
+          .toList(growable: false);
+      return parts.isEmpty ? null : parts.join(', ');
+    }
+    return value?.toString();
+  }
+
+  String? _outputsSummary(Object? value) {
+    if (value is! List) return value?.toString();
+    final entries = value.whereType<Map>().map((entry) {
+      final map = entry.cast<String, dynamic>();
+      final sizes = map['sizes'];
+      final count = sizes is List ? sizes.length : 0;
+      final format = map['format']?.toString() ?? '?';
+      return '$format($count)';
+    }).toList(growable: false);
+    if (entries.isEmpty) return null;
+    return entries.join(', ');
+  }
+
+  String? _fpsSummary(Object? value) {
+    if (value is! List) return value?.toString();
+    final ranges = value.whereType<Map>().map((entry) {
+      final map = entry.cast<String, dynamic>();
+      final min = map['min'];
+      final max = map['max'];
+      if (min == null || max == null) return null;
+      return '$min-$max';
+    }).whereType<String>().toList(growable: false);
+    if (ranges.isEmpty) return null;
+    return ranges.join(', ');
+  }
+}
+
+class _SpecRow extends StatelessWidget {
+  const _SpecRow({required this.label, required this.value});
+
+  final String label;
+  final String? value;
+
+  @override
+  Widget build(BuildContext context) {
+    if (value == null || value!.trim().isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(width: 130, child: Text(label)),
+          const SizedBox(width: 8),
+          Expanded(child: Text(value!)),
         ],
       ),
     );

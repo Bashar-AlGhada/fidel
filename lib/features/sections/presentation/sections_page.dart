@@ -6,7 +6,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../application/providers/system_providers.dart';
 import '../../../application/sampling/active_module.dart';
 import '../../../application/sampling/sampling_provider.dart';
-import '../../../core/routing/app_nav_shell.dart';
 import '../../../core/theme/theme_tokens.dart';
 import '../../../core/ui/app_card.dart';
 import '../sections_registry.dart';
@@ -25,16 +24,14 @@ class _SectionsPageState extends ConsumerState<SectionsPage> {
   Widget build(BuildContext context) {
     final ref = this.ref;
     final activeModule = ref.watch(activeModuleProvider);
-    if (activeModule != ActiveModule.sections) {
+    if (activeModule != ActiveModule.info) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(activeModuleProvider.notifier).setModule(ActiveModule.sections);
+        ref.read(activeModuleProvider.notifier).setModule(ActiveModule.info);
       });
     }
 
     final theme = Theme.of(context);
     final tokens = theme.extension<ThemeTokensExtension>()!.tokens;
-    final shell = AppNavShellScope.maybeOf(context);
-    final showMenu = shell?.hasDrawer == true;
 
     final query = _query.trim().toLowerCase();
     final sections = query.isEmpty
@@ -47,10 +44,7 @@ class _SectionsPageState extends ConsumerState<SectionsPage> {
               .toList(growable: false);
 
     return Scaffold(
-      appBar: AppBar(
-        leading: showMenu ? IconButton(icon: const Icon(Icons.menu), onPressed: shell?.openDrawer) : null,
-        title: Text('nav.sections'.tr),
-      ),
+      appBar: AppBar(title: Text('nav.info'.tr)),
       body: Padding(
         padding: EdgeInsets.all(tokens.space2),
         child: Column(
@@ -58,7 +52,13 @@ class _SectionsPageState extends ConsumerState<SectionsPage> {
             SearchBar(
               hintText: 'search.hintSections'.tr,
               onChanged: (v) => setState(() => _query = v),
-              trailing: [if (_query.isNotEmpty) IconButton(icon: const Icon(Icons.close), onPressed: () => setState(() => _query = ''))],
+              trailing: [
+                if (_query.isNotEmpty)
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => setState(() => _query = ''),
+                  ),
+              ],
             ),
             SizedBox(height: tokens.space2),
             Expanded(
@@ -81,7 +81,9 @@ class _SectionsPageState extends ConsumerState<SectionsPage> {
                     itemCount: sections.length,
                     itemBuilder: (context, index) {
                       final section = sections[index];
-                      final meta = ref.watch(sectionMetadataStreamProvider(section.id));
+                      final meta = ref.watch(
+                        sectionMetadataStreamProvider(section.id),
+                      );
                       final subtitle = meta.when(
                         data: (v) => 'availability.${v.availability.name}'.tr,
                         loading: () => 'availability.loading'.tr,
@@ -89,21 +91,31 @@ class _SectionsPageState extends ConsumerState<SectionsPage> {
                       );
 
                       return AppCard(
-                        onTap: () => context.go('/sections/${section.pathSegment}'),
+                        onTap: () => context.go('/info/${section.pathSegment}'),
                         child: Row(
                           children: [
-                            Icon(section.icon, color: theme.colorScheme.primary),
+                            Icon(
+                              section.icon,
+                              color: theme.colorScheme.primary,
+                            ),
                             SizedBox(width: tokens.space3),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Text(section.titleKey.tr, style: theme.textTheme.titleMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
+                                  Text(
+                                    section.titleKey.tr,
+                                    style: theme.textTheme.titleMedium,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                   SizedBox(height: tokens.space1),
                                   Text(
                                     subtitle,
-                                    style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),

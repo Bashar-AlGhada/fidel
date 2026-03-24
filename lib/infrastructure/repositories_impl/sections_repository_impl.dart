@@ -47,14 +47,18 @@ class SectionsRepositoryImpl implements SectionsRepository {
   DateTime? _lastSensorsPersistAt;
 
   final Map<String, SensorCapabilityEntity> _sensorCapabilitiesByKey = {};
-  final Map<String, BoundedSampleWindow<SensorReadingEntity>> _sensorSamplesByKey = {};
+  final Map<String, BoundedSampleWindow<SensorReadingEntity>>
+  _sensorSamplesByKey = {};
   List<String> _sortedSensorKeys = const [];
   bool _sortedSensorKeysDirty = true;
   int _sensorMaxSamples = 128;
   int _sensorSamplingPeriodUs = 200000;
 
   @override
-  Future<InfoSectionEntity> getSectionMetadata(String sectionId, {bool forceRefresh = false}) async {
+  Future<InfoSectionEntity> getSectionMetadata(
+    String sectionId, {
+    bool forceRefresh = false,
+  }) async {
     final cached = _metadataCache[sectionId];
     if (!forceRefresh && cached != null) return cached;
 
@@ -127,7 +131,11 @@ class SectionsRepositoryImpl implements SectionsRepository {
       return _metadataCache[sectionId] ?? cached ?? section;
     } catch (_) {
       if (cached != null) return cached;
-      final fallback = _infoSectionMapper.unavailable(id: sectionId, titleKey: titleKey, availability: InfoAvailability.unavailable);
+      final fallback = _infoSectionMapper.unavailable(
+        id: sectionId,
+        titleKey: titleKey,
+        availability: InfoAvailability.unavailable,
+      );
       _sectionSubjects[sectionId]?.add(fallback);
       return fallback;
     }
@@ -139,7 +147,11 @@ class SectionsRepositoryImpl implements SectionsRepository {
       final cached = _metadataCache[sectionId];
       return BehaviorSubject<InfoSectionEntity>.seeded(
         cached ??
-            _infoSectionMapper.unavailable(id: sectionId, titleKey: _titleKeyForSectionId(sectionId), availability: InfoAvailability.unavailable),
+            _infoSectionMapper.unavailable(
+              id: sectionId,
+              titleKey: _titleKeyForSectionId(sectionId),
+              availability: InfoAvailability.unavailable,
+            ),
       );
     });
 
@@ -154,7 +166,10 @@ class SectionsRepositoryImpl implements SectionsRepository {
   }
 
   @override
-  Stream<List<SensorEntity>> watchSensors({int maxSamples = 128, int samplingPeriodUs = 200000}) {
+  Stream<List<SensorEntity>> watchSensors({
+    int maxSamples = 128,
+    int samplingPeriodUs = 200000,
+  }) {
     final normalized = maxSamples.clamp(1, 512);
     _sensorMaxSamples = normalized;
     final normalizedSampling = samplingPeriodUs.clamp(10_000, 2_000_000);
@@ -167,7 +182,9 @@ class SectionsRepositoryImpl implements SectionsRepository {
       }
     }
 
-    _sensorsSubject ??= BehaviorSubject<List<SensorEntity>>.seeded(_buildSensorsSnapshot());
+    _sensorsSubject ??= BehaviorSubject<List<SensorEntity>>.seeded(
+      _buildSensorsSnapshot(),
+    );
     unawaited(_seedSensorsFromDisk());
     return _sensorsSubject!.stream
         .doOnListen(() {
@@ -200,28 +217,30 @@ class SectionsRepositoryImpl implements SectionsRepository {
   void _ensureSensorsFeed() {
     if (_sensorsSub != null) return;
 
-    _sensorsSub = _datasource.sensorEventsRaw(samplingPeriodUs: _sensorSamplingPeriodUs).listen((event) {
-      final data = _resultData(event);
-      if (data == null) return;
+    _sensorsSub = _datasource
+        .sensorEventsRaw(samplingPeriodUs: _sensorSamplingPeriodUs)
+        .listen((event) {
+          final data = _resultData(event);
+          if (data == null) return;
 
-      final kind = data['kind'];
-      if (kind is! String) return;
+          final kind = data['kind'];
+          if (kind is! String) return;
 
-      switch (kind) {
-        case 'capabilities':
-          _handleSensorCapabilities(data);
-          _scheduleEmitSensors();
-          break;
-        case 'reading':
-          _handleSensorReading(data);
-          _scheduleEmitSensors();
-          break;
-        case 'accuracy':
-          break;
-        default:
-          break;
-      }
-    });
+          switch (kind) {
+            case 'capabilities':
+              _handleSensorCapabilities(data);
+              _scheduleEmitSensors();
+              break;
+            case 'reading':
+              _handleSensorReading(data);
+              _scheduleEmitSensors();
+              break;
+            case 'accuracy':
+              break;
+            default:
+              break;
+          }
+        });
   }
 
   void _stopSensorsFeed() {
@@ -239,10 +258,18 @@ class SectionsRepositoryImpl implements SectionsRepository {
 
     for (final raw in sensors) {
       if (raw is! Map) continue;
-      final cap = _sensorEventMapper.capabilityFromMap(raw.cast<String, dynamic>());
+      final cap = _sensorEventMapper.capabilityFromMap(
+        raw.cast<String, dynamic>(),
+      );
       if (cap == null || cap.key.isEmpty) continue;
       _sensorCapabilitiesByKey[cap.key] = cap;
-      _sensorSamplesByKey.putIfAbsent(cap.key, () => BoundedSampleWindow<SensorReadingEntity>(maxSamples: _sensorMaxSamples, samples: const []));
+      _sensorSamplesByKey.putIfAbsent(
+        cap.key,
+        () => BoundedSampleWindow<SensorReadingEntity>(
+          maxSamples: _sensorMaxSamples,
+          samples: const [],
+        ),
+      );
     }
     _sortedSensorKeysDirty = true;
     _persistSensorsIfNeeded(force: true);
@@ -257,7 +284,13 @@ class SectionsRepositoryImpl implements SectionsRepository {
 
     final wasKnownKey = _sensorSamplesByKey.containsKey(key);
     final existing = _sensorSamplesByKey[key];
-    final next = (existing ?? BoundedSampleWindow<SensorReadingEntity>(maxSamples: _sensorMaxSamples, samples: const [])).push(reading);
+    final next =
+        (existing ??
+                BoundedSampleWindow<SensorReadingEntity>(
+                  maxSamples: _sensorMaxSamples,
+                  samples: const [],
+                ))
+            .push(reading);
 
     _sensorSamplesByKey[key] = next;
 
@@ -268,7 +301,9 @@ class SectionsRepositoryImpl implements SectionsRepository {
         key: key,
         name: '',
         vendor: '',
-        type: (data['sensorType'] is num) ? (data['sensorType'] as num).toInt() : 0,
+        type: (data['sensorType'] is num)
+            ? (data['sensorType'] as num).toInt()
+            : 0,
         maxRange: 0,
         resolution: 0,
         powerMilliAmp: 0,
@@ -302,7 +337,10 @@ class SectionsRepositoryImpl implements SectionsRepository {
 
   List<SensorEntity> _buildSensorsSnapshot() {
     if (_sortedSensorKeysDirty) {
-      final keys = <String>{..._sensorCapabilitiesByKey.keys, ..._sensorSamplesByKey.keys}.toList(growable: false);
+      final keys = <String>{
+        ..._sensorCapabilitiesByKey.keys,
+        ..._sensorSamplesByKey.keys,
+      }.toList(growable: false);
 
       keys.sort((a, b) {
         final ca = _sensorCapabilitiesByKey[a];
@@ -325,11 +363,28 @@ class SectionsRepositoryImpl implements SectionsRepository {
         .map((key) {
           final cap =
               _sensorCapabilitiesByKey[key] ??
-              SensorCapabilityEntity(key: key, name: '', vendor: '', type: 0, maxRange: 0, resolution: 0, powerMilliAmp: 0, minDelay: Duration.zero);
-          final samples = _sensorSamplesByKey[key] ?? BoundedSampleWindow<SensorReadingEntity>(maxSamples: _sensorMaxSamples, samples: const []);
+              SensorCapabilityEntity(
+                key: key,
+                name: '',
+                vendor: '',
+                type: 0,
+                maxRange: 0,
+                resolution: 0,
+                powerMilliAmp: 0,
+                minDelay: Duration.zero,
+              );
+          final samples =
+              _sensorSamplesByKey[key] ??
+              BoundedSampleWindow<SensorReadingEntity>(
+                maxSamples: _sensorMaxSamples,
+                samples: const [],
+              );
           final aligned = samples.maxSamples == _sensorMaxSamples
               ? samples
-              : BoundedSampleWindow<SensorReadingEntity>(maxSamples: _sensorMaxSamples, samples: samples.samples);
+              : BoundedSampleWindow<SensorReadingEntity>(
+                  maxSamples: _sensorMaxSamples,
+                  samples: samples.samples,
+                );
           return SensorEntity(capability: cap, samples: aligned);
         })
         .toList(growable: false);
@@ -338,7 +393,10 @@ class SectionsRepositoryImpl implements SectionsRepository {
   Future<InfoSectionEntity> _fetchDeviceBuild() async {
     final cached = _metadataCache['device-build'];
 
-    final results = await Future.wait([_datasource.deviceSnapshotResult(), _datasource.buildSnapshotResult()]);
+    final results = await Future.wait([
+      _datasource.deviceSnapshotResult(),
+      _datasource.buildSnapshotResult(),
+    ]);
 
     final device = _resultData(results[0]);
     final build = _resultData(results[1]);
@@ -351,7 +409,12 @@ class SectionsRepositoryImpl implements SectionsRepository {
           );
     }
 
-    unawaited(_cacheStore.writeMap('section_device-build', <String, dynamic>{'device': device, 'build': build}));
+    unawaited(
+      _cacheStore.writeMap('section_device-build', <String, dynamic>{
+        'device': device,
+        'build': build,
+      }),
+    );
     return _infoSectionMapper.deviceAndBuild(device: device, build: build);
   }
 
@@ -365,7 +428,12 @@ class SectionsRepositoryImpl implements SectionsRepository {
     final result = await fetch();
     final data = _resultData(result);
     if (data == null) {
-      return cached ?? _infoSectionMapper.unavailable(id: sectionId, titleKey: titleKey, availability: InfoAvailability.unavailable);
+      return cached ??
+          _infoSectionMapper.unavailable(
+            id: sectionId,
+            titleKey: titleKey,
+            availability: InfoAvailability.unavailable,
+          );
     }
     unawaited(_cacheStore.writeMap('section_$sectionId', data));
     return map(data);
@@ -413,7 +481,10 @@ class SectionsRepositoryImpl implements SectionsRepository {
             availability: InfoAvailability.unavailable,
           );
         }
-        return _infoSectionMapper.deviceAndBuild(device: device.cast<String, dynamic>(), build: build.cast<String, dynamic>());
+        return _infoSectionMapper.deviceAndBuild(
+          device: device.cast<String, dynamic>(),
+          build: build.cast<String, dynamic>(),
+        );
       }(),
       'display' => _infoSectionMapper.display(cached),
       'memory-storage' => _infoSectionMapper.memoryStorage(cached),
@@ -424,7 +495,11 @@ class SectionsRepositoryImpl implements SectionsRepository {
       'codecs' => _infoSectionMapper.codecs(cached),
       'widi-miracast' => _infoSectionMapper.widiMiracast(cached),
       'thermal' => _infoSectionMapper.thermal(cached),
-      _ => _infoSectionMapper.unavailable(id: sectionId, titleKey: _titleKeyForSectionId(sectionId), availability: InfoAvailability.unavailable),
+      _ => _infoSectionMapper.unavailable(
+        id: sectionId,
+        titleKey: _titleKeyForSectionId(sectionId),
+        availability: InfoAvailability.unavailable,
+      ),
     };
 
     _metadataCache[sectionId] = mapped;
@@ -450,10 +525,20 @@ class SectionsRepositoryImpl implements SectionsRepository {
           name: (map['name'] as String?) ?? '',
           vendor: (map['vendor'] as String?) ?? '',
           type: (map['type'] is num) ? (map['type'] as num).toInt() : 0,
-          maxRange: (map['maxRange'] is num) ? (map['maxRange'] as num).toDouble() : 0,
-          resolution: (map['resolution'] is num) ? (map['resolution'] as num).toDouble() : 0,
-          powerMilliAmp: (map['powerMilliAmp'] is num) ? (map['powerMilliAmp'] as num).toDouble() : 0,
-          minDelay: Duration(microseconds: (map['minDelayUs'] is num) ? (map['minDelayUs'] as num).toInt() : 0),
+          maxRange: (map['maxRange'] is num)
+              ? (map['maxRange'] as num).toDouble()
+              : 0,
+          resolution: (map['resolution'] is num)
+              ? (map['resolution'] as num).toDouble()
+              : 0,
+          powerMilliAmp: (map['powerMilliAmp'] is num)
+              ? (map['powerMilliAmp'] as num).toDouble()
+              : 0,
+          minDelay: Duration(
+            microseconds: (map['minDelayUs'] is num)
+                ? (map['minDelayUs'] as num).toInt()
+                : 0,
+          ),
         );
       }
     }
@@ -478,11 +563,21 @@ class SectionsRepositoryImpl implements SectionsRepository {
           }
         }
         final reading = SensorReadingEntity(
-          timestamp: ts is num ? DateTime.fromMillisecondsSinceEpoch(ts.toInt()) : DateTime.now(),
-          values: values is List ? values.whereType<num>().map((e) => e.toDouble()).toList(growable: false) : const [],
+          timestamp: ts is num
+              ? DateTime.fromMillisecondsSinceEpoch(ts.toInt())
+              : DateTime.now(),
+          values: values is List
+              ? values
+                    .whereType<num>()
+                    .map((e) => e.toDouble())
+                    .toList(growable: false)
+              : const [],
           accuracy: parsedAccuracy,
         );
-        _sensorSamplesByKey[key] = BoundedSampleWindow<SensorReadingEntity>(maxSamples: _sensorMaxSamples, samples: [reading]);
+        _sensorSamplesByKey[key] = BoundedSampleWindow<SensorReadingEntity>(
+          maxSamples: _sensorMaxSamples,
+          samples: [reading],
+        );
       }
     }
 
@@ -529,6 +624,11 @@ class SectionsRepositoryImpl implements SectionsRepository {
         .whereType<Map<String, dynamic>>()
         .toList(growable: false);
 
-    unawaited(_cacheStore.writeMap('sensors_cache', <String, dynamic>{'capabilities': caps, 'lastKnown': lastKnown}));
+    unawaited(
+      _cacheStore.writeMap('sensors_cache', <String, dynamic>{
+        'capabilities': caps,
+        'lastKnown': lastKnown,
+      }),
+    );
   }
 }

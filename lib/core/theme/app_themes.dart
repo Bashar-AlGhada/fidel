@@ -4,7 +4,11 @@ import 'app_typography.dart';
 import 'theme_tokens.dart';
 
 ThemeData buildLightTheme() {
-  final colorScheme = ColorScheme.fromSeed(seedColor: const Color(0xFF0B7285), secondary: const Color(0xFFB54708), tertiary: const Color(0xFF2F9E44));
+  final colorScheme = ColorScheme.fromSeed(
+    seedColor: const Color(0xFF0B7285),
+    secondary: const Color(0xFFB54708),
+    tertiary: const Color(0xFF2F9E44),
+  );
   return _buildTheme(colorScheme: colorScheme, isAmoled: false);
 }
 
@@ -35,9 +39,14 @@ ThemeData buildAmoledTheme() {
   return _buildTheme(colorScheme: amoled, isAmoled: true);
 }
 
-ThemeData _buildTheme({required ColorScheme colorScheme, required bool isAmoled}) {
+ThemeData _buildTheme({
+  required ColorScheme colorScheme,
+  required bool isAmoled,
+}) {
   final tokens = ThemeTokens.v2;
-  final base = colorScheme.brightness == Brightness.dark ? ThemeData.dark() : ThemeData.light();
+  final base = colorScheme.brightness == Brightness.dark
+      ? ThemeData.dark()
+      : ThemeData.light();
 
   return ThemeData(
     colorScheme: colorScheme,
@@ -53,7 +62,9 @@ ThemeData _buildTheme({required ColorScheme colorScheme, required bool isAmoled}
     cardTheme: CardThemeData(
       shape: RoundedRectangleBorder(borderRadius: tokens.cardBorderRadius),
       elevation: 0,
-      color: isAmoled ? const Color(0xFF101010) : colorScheme.surfaceContainerHigh,
+      color: isAmoled
+          ? const Color(0xFF101010)
+          : colorScheme.surfaceContainerHigh,
     ),
     chipTheme: ChipThemeData(
       backgroundColor: colorScheme.surfaceContainer,
@@ -62,12 +73,18 @@ ThemeData _buildTheme({required ColorScheme colorScheme, required bool isAmoled}
       side: BorderSide.none,
       labelStyle: TextStyle(color: colorScheme.onSurface),
     ),
-    dividerTheme: DividerThemeData(thickness: tokens.strokeWidth, space: tokens.space3, color: colorScheme.outlineVariant),
+    dividerTheme: DividerThemeData(
+      thickness: tokens.strokeWidth,
+      space: tokens.space3,
+      color: colorScheme.outlineVariant,
+    ),
     inputDecorationTheme: InputDecorationTheme(
       isDense: true,
       filled: true,
       fillColor: colorScheme.surfaceContainer,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(tokens.radiusMd)),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(tokens.radiusMd),
+      ),
     ),
     extensions: [ThemeTokensExtension(tokens)],
   );

@@ -29,9 +29,9 @@ class _CodecsSectionPageState extends ConsumerState<CodecsSectionPage> {
   @override
   Widget build(BuildContext context) {
     final activeModule = ref.watch(activeModuleProvider);
-    if (activeModule != ActiveModule.sections) {
+    if (activeModule != ActiveModule.info) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(activeModuleProvider.notifier).setModule(ActiveModule.sections);
+        ref.read(activeModuleProvider.notifier).setModule(ActiveModule.info);
       });
     }
 
@@ -40,7 +40,12 @@ class _CodecsSectionPageState extends ConsumerState<CodecsSectionPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('section.codecs'.tr),
-        actions: [IconButton(icon: const Icon(Icons.upload_file), onPressed: () => _export(context, section.asData?.value))],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.upload_file),
+            onPressed: () => _export(context, section.asData?.value),
+          ),
+        ],
       ),
       body: section.when(
         data: (value) => _buildLoaded(context, value),
@@ -52,7 +57,9 @@ class _CodecsSectionPageState extends ConsumerState<CodecsSectionPage> {
 
   Future<void> _export(BuildContext context, InfoSectionEntity? section) async {
     if (section == null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('availability.unavailable'.tr)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('availability.unavailable'.tr)));
       return;
     }
 
@@ -60,7 +67,11 @@ class _CodecsSectionPageState extends ConsumerState<CodecsSectionPage> {
     if (format == null) return;
 
     final service = ref.read(exportServiceProvider);
-    final file = await service.exportSection(section, format: format, fileBaseName: 'fidel-${section.id}');
+    final file = await service.exportSection(
+      section,
+      format: format,
+      fileBaseName: 'fidel-${section.id}',
+    );
     await service.share(file);
   }
 
@@ -84,7 +95,8 @@ class _CodecsSectionPageState extends ConsumerState<CodecsSectionPage> {
         .toList(growable: false);
 
     return RefreshIndicator(
-      onRefresh: () => ref.read(getSectionMetadataProvider)('codecs', forceRefresh: true),
+      onRefresh: () =>
+          ref.read(getSectionMetadataProvider)('codecs', forceRefresh: true),
       child: ListView(
         padding: EdgeInsets.all(tokens.space2),
         children: [
@@ -104,7 +116,11 @@ class _CodecsSectionPageState extends ConsumerState<CodecsSectionPage> {
           ),
           SizedBox(height: tokens.space2),
           TextField(
-            decoration: InputDecoration(prefixIcon: const Icon(Icons.search), hintText: 'search.hintCodecs'.tr, border: const OutlineInputBorder()),
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.search),
+              hintText: 'search.hintCodecs'.tr,
+              border: const OutlineInputBorder(),
+            ),
             onChanged: (v) => setState(() => _query = v),
           ),
           SizedBox(height: tokens.space2),
@@ -112,7 +128,11 @@ class _CodecsSectionPageState extends ConsumerState<CodecsSectionPage> {
             spacing: tokens.space1,
             runSpacing: tokens.space1,
             children: [
-              _FilterChip(selected: _filter == CodecFilter.all, label: 'filter.all'.tr, onTap: () => setState(() => _filter = CodecFilter.all)),
+              _FilterChip(
+                selected: _filter == CodecFilter.all,
+                label: 'filter.all'.tr,
+                onTap: () => setState(() => _filter = CodecFilter.all),
+              ),
               _FilterChip(
                 selected: _filter == CodecFilter.encoders,
                 label: 'filter.encoders'.tr,
@@ -128,7 +148,10 @@ class _CodecsSectionPageState extends ConsumerState<CodecsSectionPage> {
           SizedBox(height: tokens.space2),
           if (filtered.isEmpty)
             Card(
-              child: Padding(padding: EdgeInsets.all(tokens.space2), child: Text('search.noResults'.tr)),
+              child: Padding(
+                padding: EdgeInsets.all(tokens.space2),
+                child: Text('search.noResults'.tr),
+              ),
             )
           else
             ...filtered.map((codec) => _CodecCard(codec: codec)),
@@ -138,13 +161,19 @@ class _CodecsSectionPageState extends ConsumerState<CodecsSectionPage> {
   }
 
   List<Map<String, dynamic>> _extractCodecs(InfoSectionEntity section) {
-    final item = section.items.cast<InfoItemEntity?>().firstWhere((it) => it?.labelKey == 'codecs.codecs', orElse: () => null);
+    final item = section.items.cast<InfoItemEntity?>().firstWhere(
+      (it) => it?.labelKey == 'codecs.codecs',
+      orElse: () => null,
+    );
     final raw = item?.value?.text;
     if (raw == null || raw.isEmpty) return const [];
     try {
       final decoded = jsonDecode(raw);
       if (decoded is List) {
-        return decoded.whereType<Map>().map((e) => e.cast<String, dynamic>()).toList(growable: false);
+        return decoded
+            .whereType<Map>()
+            .map((e) => e.cast<String, dynamic>())
+            .toList(growable: false);
       }
       if (decoded is Map) {
         return [decoded.cast<String, dynamic>()];
@@ -166,7 +195,11 @@ class _CodecsSectionPageState extends ConsumerState<CodecsSectionPage> {
 }
 
 class _FilterChip extends StatelessWidget {
-  const _FilterChip({required this.selected, required this.label, required this.onTap});
+  const _FilterChip({
+    required this.selected,
+    required this.label,
+    required this.onTap,
+  });
 
   final bool selected;
   final String label;
@@ -177,7 +210,12 @@ class _FilterChip extends StatelessWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(24),
       onTap: onTap,
-      child: Chip(label: Text(label), backgroundColor: selected ? Theme.of(context).colorScheme.primaryContainer : null),
+      child: Chip(
+        label: Text(label),
+        backgroundColor: selected
+            ? Theme.of(context).colorScheme.primaryContainer
+            : null,
+      ),
     );
   }
 }
@@ -193,7 +231,10 @@ class _SummaryBadge extends StatelessWidget {
     final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(color: theme.colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(999)),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(999),
+      ),
       child: Text('$label: $value', style: theme.textTheme.labelLarge),
     );
   }
@@ -208,8 +249,11 @@ class _CodecCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<ThemeTokensExtension>()!.tokens;
     final encoder = const JsonEncoder.withIndent('  ');
-    final name = (codec['name'] ?? codec['codecName'] ?? codec['id'])?.toString();
-    final isEncoder = (codec['isEncoder'] ?? codec['encoder']) == true || codec['isEncoder']?.toString().toLowerCase() == 'true';
+    final name = (codec['name'] ?? codec['codecName'] ?? codec['id'])
+        ?.toString();
+    final isEncoder =
+        (codec['isEncoder'] ?? codec['encoder']) == true ||
+        codec['isEncoder']?.toString().toLowerCase() == 'true';
     final label = isEncoder ? 'filter.encoders'.tr : 'filter.decoders'.tr;
     final mimeTypes = _listSummary(codec['supportedTypes'] ?? codec['types']);
     final aliases = _listSummary(codec['aliases']);
@@ -222,7 +266,12 @@ class _CodecCard extends StatelessWidget {
         subtitle: Text(label),
         children: [
           Padding(
-            padding: EdgeInsets.fromLTRB(tokens.space2, 0, tokens.space2, tokens.space2),
+            padding: EdgeInsets.fromLTRB(
+              tokens.space2,
+              0,
+              tokens.space2,
+              tokens.space2,
+            ),
             child: Column(
               children: [
                 _SpecRow(label: 'Type', value: label),
@@ -234,7 +283,12 @@ class _CodecCard extends StatelessWidget {
                   tilePadding: EdgeInsets.zero,
                   childrenPadding: EdgeInsets.zero,
                   title: const Text('Advanced raw payload'),
-                  children: [Align(alignment: Alignment.centerLeft, child: SelectableText(encoder.convert(codec)))],
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: SelectableText(encoder.convert(codec)),
+                    ),
+                  ],
                 ),
               ],
             ),

@@ -5,7 +5,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../application/providers/units_providers.dart';
 import '../../../application/sampling/active_module.dart';
 import '../../../application/sampling/sampling_provider.dart';
-import '../../../core/routing/app_nav_shell.dart';
 import '../../../core/localization/locale_provider.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../core/theme/theme_tokens.dart';
@@ -22,7 +21,9 @@ class SettingsPage extends ConsumerWidget {
     final activeModule = ref.watch(activeModuleProvider);
     if (activeModule != ActiveModule.settings) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(activeModuleProvider.notifier).setModule(ActiveModule.settings);
+        ref
+            .read(activeModuleProvider.notifier)
+            .setModule(ActiveModule.settings);
       });
     }
 
@@ -31,14 +32,9 @@ class SettingsPage extends ConsumerWidget {
     final unitPrefs = ref.watch(unitPreferencesStreamProvider);
     final theme = Theme.of(context);
     final tokens = theme.extension<ThemeTokensExtension>()!.tokens;
-    final shell = AppNavShellScope.maybeOf(context);
-    final showMenu = shell?.hasDrawer == true;
 
     return Scaffold(
-      appBar: AppBar(
-        leading: showMenu ? IconButton(icon: const Icon(Icons.menu), onPressed: shell?.openDrawer) : null,
-        title: Text('nav.settings'.tr),
-      ),
+      appBar: AppBar(title: Text('nav.settings'.tr)),
       body: ListView(
         padding: EdgeInsets.all(tokens.space2),
         children: [
@@ -53,9 +49,18 @@ class SettingsPage extends ConsumerWidget {
                   ref.read(themeModeProvider.notifier).setTheme(v);
                 },
                 items: const [
-                  DropdownMenuItem(value: AppThemeMode.light, child: Text('Light')),
-                  DropdownMenuItem(value: AppThemeMode.dark, child: Text('Dark')),
-                  DropdownMenuItem(value: AppThemeMode.amoled, child: Text('AMOLED')),
+                  DropdownMenuItem(
+                    value: AppThemeMode.light,
+                    child: Text('Light'),
+                  ),
+                  DropdownMenuItem(
+                    value: AppThemeMode.dark,
+                    child: Text('Dark'),
+                  ),
+                  DropdownMenuItem(
+                    value: AppThemeMode.amoled,
+                    child: Text('AMOLED'),
+                  ),
                 ],
               ),
             ),
@@ -73,10 +78,22 @@ class SettingsPage extends ConsumerWidget {
                   Get.updateLocale(v);
                 },
                 items: const [
-                  DropdownMenuItem(value: Locale('en', 'US'), child: Text('English')),
-                  DropdownMenuItem(value: Locale('de', 'DE'), child: Text('Deutsch')),
-                  DropdownMenuItem(value: Locale('fr', 'FR'), child: Text('Français')),
-                  DropdownMenuItem(value: Locale('es', 'ES'), child: Text('Español')),
+                  DropdownMenuItem(
+                    value: Locale('en', 'US'),
+                    child: Text('English'),
+                  ),
+                  DropdownMenuItem(
+                    value: Locale('de', 'DE'),
+                    child: Text('Deutsch'),
+                  ),
+                  DropdownMenuItem(
+                    value: Locale('fr', 'FR'),
+                    child: Text('Français'),
+                  ),
+                  DropdownMenuItem(
+                    value: Locale('es', 'ES'),
+                    child: Text('Español'),
+                  ),
                   DropdownMenuItem(value: Locale('ar'), child: Text('العربية')),
                 ],
               ),
@@ -87,9 +104,16 @@ class SettingsPage extends ConsumerWidget {
             title: 'settings.units'.tr,
             child: unitPrefs.when(
               data: (prefs) => AppCard(
-                child: _UnitsSettings(prefs: prefs, onChanged: (next) => ref.read(setUnitPreferencesProvider)(next)),
+                child: _UnitsSettings(
+                  prefs: prefs,
+                  onChanged: (next) =>
+                      ref.read(setUnitPreferencesProvider)(next),
+                ),
               ),
-              loading: () => const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: LinearProgressIndicator()),
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: LinearProgressIndicator(),
+              ),
               error: (err, st) => Text('availability.unavailable'.tr),
             ),
           ),
@@ -115,10 +139,17 @@ class _UnitsSettings extends StatelessWidget {
             Expanded(child: Text('units.temperature'.tr)),
             DropdownButton<TemperatureUnit>(
               value: prefs.temperature,
-              onChanged: (v) => v == null ? null : onChanged(prefs.copyWith(temperature: v)),
+              onChanged: (v) =>
+                  v == null ? null : onChanged(prefs.copyWith(temperature: v)),
               items: [
-                DropdownMenuItem(value: TemperatureUnit.celsius, child: Text('units.celsius'.tr)),
-                DropdownMenuItem(value: TemperatureUnit.fahrenheit, child: Text('units.fahrenheit'.tr)),
+                DropdownMenuItem(
+                  value: TemperatureUnit.celsius,
+                  child: Text('units.celsius'.tr),
+                ),
+                DropdownMenuItem(
+                  value: TemperatureUnit.fahrenheit,
+                  child: Text('units.fahrenheit'.tr),
+                ),
               ],
             ),
           ],
@@ -128,10 +159,17 @@ class _UnitsSettings extends StatelessWidget {
             Expanded(child: Text('units.dataSize'.tr)),
             DropdownButton<DataSizeBase>(
               value: prefs.dataSizeBase,
-              onChanged: (v) => v == null ? null : onChanged(prefs.copyWith(dataSizeBase: v)),
+              onChanged: (v) =>
+                  v == null ? null : onChanged(prefs.copyWith(dataSizeBase: v)),
               items: [
-                DropdownMenuItem(value: DataSizeBase.base2, child: Text('units.base2'.tr)),
-                DropdownMenuItem(value: DataSizeBase.base10, child: Text('units.base10'.tr)),
+                DropdownMenuItem(
+                  value: DataSizeBase.base2,
+                  child: Text('units.base2'.tr),
+                ),
+                DropdownMenuItem(
+                  value: DataSizeBase.base10,
+                  child: Text('units.base10'.tr),
+                ),
               ],
             ),
           ],
@@ -141,10 +179,17 @@ class _UnitsSettings extends StatelessWidget {
             Expanded(child: Text('units.rate'.tr)),
             DropdownButton<RateUnit>(
               value: prefs.rateUnit,
-              onChanged: (v) => v == null ? null : onChanged(prefs.copyWith(rateUnit: v)),
+              onChanged: (v) =>
+                  v == null ? null : onChanged(prefs.copyWith(rateUnit: v)),
               items: [
-                DropdownMenuItem(value: RateUnit.bytesPerSecond, child: Text('units.bytesPerSecond'.tr)),
-                DropdownMenuItem(value: RateUnit.bitsPerSecond, child: Text('units.bitsPerSecond'.tr)),
+                DropdownMenuItem(
+                  value: RateUnit.bytesPerSecond,
+                  child: Text('units.bytesPerSecond'.tr),
+                ),
+                DropdownMenuItem(
+                  value: RateUnit.bitsPerSecond,
+                  child: Text('units.bitsPerSecond'.tr),
+                ),
               ],
             ),
           ],
@@ -154,10 +199,17 @@ class _UnitsSettings extends StatelessWidget {
             Expanded(child: Text('units.system'.tr)),
             DropdownButton<UnitSystem>(
               value: prefs.unitSystem,
-              onChanged: (v) => v == null ? null : onChanged(prefs.copyWith(unitSystem: v)),
+              onChanged: (v) =>
+                  v == null ? null : onChanged(prefs.copyWith(unitSystem: v)),
               items: [
-                DropdownMenuItem(value: UnitSystem.metric, child: Text('units.metric'.tr)),
-                DropdownMenuItem(value: UnitSystem.imperial, child: Text('units.imperial'.tr)),
+                DropdownMenuItem(
+                  value: UnitSystem.metric,
+                  child: Text('units.metric'.tr),
+                ),
+                DropdownMenuItem(
+                  value: UnitSystem.imperial,
+                  child: Text('units.imperial'.tr),
+                ),
               ],
             ),
           ],

@@ -1,185 +1,118 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-class AppNavShell extends StatefulWidget {
-  const AppNavShell({required this.currentIndex, required this.onTap, required this.child, super.key});
+import '../ui/glass_bottom_navigation.dart';
+import '../ui/glass_card.dart';
+
+class AppNavShell extends StatelessWidget {
+  const AppNavShell({
+    required this.currentIndex,
+    required this.onTap,
+    required this.child,
+    super.key,
+  });
 
   final int currentIndex;
   final ValueChanged<int> onTap;
   final Widget child;
 
   @override
-  State<AppNavShell> createState() => _AppNavShellState();
-}
-
-class _AppNavShellState extends State<AppNavShell> {
-  final _scaffoldKey = GlobalKey<ScaffoldState>();
-
-  @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isWide = constraints.maxWidth >= 900;
-        final isMedium = constraints.maxWidth >= 600;
+    final destinations = <_NavDestination>[
+      _NavDestination(
+        icon: Icons.dashboard_outlined,
+        selectedIcon: Icons.dashboard,
+        label: 'nav.dashboard'.tr,
+      ),
+      _NavDestination(
+        icon: Icons.info_outline,
+        selectedIcon: Icons.info,
+        label: 'nav.info'.tr,
+      ),
+      _NavDestination(
+        icon: Icons.science_outlined,
+        selectedIcon: Icons.science,
+        label: 'nav.testers'.tr,
+      ),
+      _NavDestination(
+        icon: Icons.settings_outlined,
+        selectedIcon: Icons.settings,
+        label: 'nav.settings'.tr,
+      ),
+    ];
 
-        if (isWide || isMedium) {
-          return AppNavShellScope(
-            hasDrawer: false,
-            openDrawer: null,
-            child: Scaffold(
+    return AppNavShellScope(
+      hasDrawer: false,
+      openDrawer: null,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isWide = constraints.maxWidth >= 1000;
+          final isMedium = constraints.maxWidth >= 700;
+          if (isWide || isMedium) {
+            return Scaffold(
               body: Row(
                 children: [
-                  NavigationRail(
-                    extended: isWide,
-                    selectedIndex: widget.currentIndex,
-                    onDestinationSelected: widget.onTap,
-                    labelType: isWide ? NavigationRailLabelType.none : NavigationRailLabelType.selected,
-                    destinations: [
-                      NavigationRailDestination(
-                        icon: const Icon(Icons.dashboard_outlined),
-                        selectedIcon: const Icon(Icons.dashboard),
-                        label: Text('nav.dashboard'.tr),
+                  SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: GlassCard(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 8,
+                        ),
+                        child: NavigationRail(
+                          extended: isWide,
+                          selectedIndex: currentIndex,
+                          onDestinationSelected: onTap,
+                          labelType: isWide
+                              ? NavigationRailLabelType.none
+                              : NavigationRailLabelType.selected,
+                          destinations: [
+                            for (final destination in destinations)
+                              NavigationRailDestination(
+                                icon: Icon(destination.icon),
+                                selectedIcon: Icon(destination.selectedIcon),
+                                label: Text(destination.label),
+                              ),
+                          ],
+                        ),
                       ),
-                      NavigationRailDestination(
-                        icon: const Icon(Icons.view_list_outlined),
-                        selectedIcon: const Icon(Icons.view_list),
-                        label: Text('nav.sections'.tr),
-                      ),
-                      NavigationRailDestination(
-                        icon: const Icon(Icons.memory_outlined),
-                        selectedIcon: const Icon(Icons.memory),
-                        label: Text('nav.memory'.tr),
-                      ),
-                      NavigationRailDestination(
-                        icon: const Icon(Icons.battery_std_outlined),
-                        selectedIcon: const Icon(Icons.battery_std),
-                        label: Text('nav.battery'.tr),
-                      ),
-                      NavigationRailDestination(
-                        icon: const Icon(Icons.speed_outlined),
-                        selectedIcon: const Icon(Icons.speed),
-                        label: Text('nav.cpu'.tr),
-                      ),
-                      NavigationRailDestination(
-                        icon: const Icon(Icons.settings_outlined),
-                        selectedIcon: const Icon(Icons.settings),
-                        label: Text('nav.settings'.tr),
-                      ),
-                    ],
+                    ),
                   ),
-                  const VerticalDivider(width: 1),
-                  Expanded(child: widget.child),
+                  Expanded(child: child),
                 ],
               ),
+            );
+          }
+
+          return Scaffold(
+            body: child,
+            bottomNavigationBar: GlassBottomNavigation(
+              currentIndex: currentIndex,
+              onTap: onTap,
+              destinations: [
+                for (final destination in destinations)
+                  NavigationDestination(
+                    icon: Icon(destination.icon),
+                    selectedIcon: Icon(destination.selectedIcon),
+                    label: destination.label,
+                  ),
+              ],
             ),
           );
-        }
-
-        return AppNavShellScope(
-          hasDrawer: true,
-          openDrawer: () => _scaffoldKey.currentState?.openDrawer(),
-          child: Scaffold(
-            key: _scaffoldKey,
-            drawer: Drawer(
-              child: SafeArea(
-                child: ListView(
-                  padding: EdgeInsets.zero,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-                      decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHighest),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.insights_outlined, color: Theme.of(context).colorScheme.primary),
-                              const SizedBox(width: 10),
-                              Text('Fidel', style: Theme.of(context).textTheme.titleLarge),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          Text('Device diagnostics and profiling', style: Theme.of(context).textTheme.bodyMedium),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                      child: Text('Main', style: Theme.of(context).textTheme.labelLarge),
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.dashboard_outlined),
-                      title: Text('nav.dashboard'.tr),
-                      selected: widget.currentIndex == 0,
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        widget.onTap(0);
-                      },
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.view_list_outlined),
-                      title: Text('nav.sections'.tr),
-                      selected: widget.currentIndex == 1,
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        widget.onTap(1);
-                      },
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.memory_outlined),
-                      title: Text('nav.memory'.tr),
-                      selected: widget.currentIndex == 2,
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        widget.onTap(2);
-                      },
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.battery_std_outlined),
-                      title: Text('nav.battery'.tr),
-                      selected: widget.currentIndex == 3,
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        widget.onTap(3);
-                      },
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.speed_outlined),
-                      title: Text('nav.cpu'.tr),
-                      selected: widget.currentIndex == 4,
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        widget.onTap(4);
-                      },
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                      child: Text('Preferences', style: Theme.of(context).textTheme.labelLarge),
-                    ),
-                    const Divider(),
-                    ListTile(
-                      leading: const Icon(Icons.settings_outlined),
-                      title: Text('nav.settings'.tr),
-                      selected: widget.currentIndex == 5,
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        widget.onTap(5);
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            body: widget.child,
-          ),
-        );
-      },
+        },
+      ),
     );
   }
 }
 
 class AppNavShellScope extends InheritedWidget {
-  const AppNavShellScope({required this.hasDrawer, required this.openDrawer, required super.child, super.key});
+  const AppNavShellScope({
+    required this.hasDrawer,
+    required this.openDrawer,
+    required super.child,
+    super.key,
+  });
 
   final bool hasDrawer;
   final VoidCallback? openDrawer;
@@ -190,6 +123,19 @@ class AppNavShellScope extends InheritedWidget {
 
   @override
   bool updateShouldNotify(covariant AppNavShellScope oldWidget) {
-    return oldWidget.hasDrawer != hasDrawer || oldWidget.openDrawer != openDrawer;
+    return oldWidget.hasDrawer != hasDrawer ||
+        oldWidget.openDrawer != openDrawer;
   }
+}
+
+class _NavDestination {
+  const _NavDestination({
+    required this.icon,
+    required this.selectedIcon,
+    required this.label,
+  });
+
+  final IconData icon;
+  final IconData selectedIcon;
+  final String label;
 }

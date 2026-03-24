@@ -23,11 +23,9 @@ class SectionDetailPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final activeModule = ref.watch(activeModuleProvider);
-    if (activeModule != ActiveModule.sections) {
+    if (activeModule != ActiveModule.info) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref
-            .read(activeModuleProvider.notifier)
-            .setModule(ActiveModule.sections);
+        ref.read(activeModuleProvider.notifier).setModule(ActiveModule.info);
       });
     }
 

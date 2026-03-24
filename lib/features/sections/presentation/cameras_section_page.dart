@@ -29,9 +29,9 @@ class _CamerasSectionPageState extends ConsumerState<CamerasSectionPage> {
   @override
   Widget build(BuildContext context) {
     final activeModule = ref.watch(activeModuleProvider);
-    if (activeModule != ActiveModule.sections) {
+    if (activeModule != ActiveModule.info) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(activeModuleProvider.notifier).setModule(ActiveModule.sections);
+        ref.read(activeModuleProvider.notifier).setModule(ActiveModule.info);
       });
     }
 
@@ -40,7 +40,12 @@ class _CamerasSectionPageState extends ConsumerState<CamerasSectionPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('section.cameras'.tr),
-        actions: [IconButton(icon: const Icon(Icons.upload_file), onPressed: () => _export(context, section.asData?.value))],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.upload_file),
+            onPressed: () => _export(context, section.asData?.value),
+          ),
+        ],
       ),
       body: section.when(
         data: (value) => _buildLoaded(context, value),
@@ -52,7 +57,9 @@ class _CamerasSectionPageState extends ConsumerState<CamerasSectionPage> {
 
   Future<void> _export(BuildContext context, InfoSectionEntity? section) async {
     if (section == null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('availability.unavailable'.tr)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('availability.unavailable'.tr)));
       return;
     }
 
@@ -60,7 +67,11 @@ class _CamerasSectionPageState extends ConsumerState<CamerasSectionPage> {
     if (format == null) return;
 
     final service = ref.read(exportServiceProvider);
-    final file = await service.exportSection(section, format: format, fileBaseName: 'fidel-${section.id}');
+    final file = await service.exportSection(
+      section,
+      format: format,
+      fileBaseName: 'fidel-${section.id}',
+    );
     await service.share(file);
   }
 
@@ -68,9 +79,15 @@ class _CamerasSectionPageState extends ConsumerState<CamerasSectionPage> {
     final tokens = Theme.of(context).extension<ThemeTokensExtension>()!.tokens;
     final cameras = _extractCameras(section);
     final totalCount = cameras.length;
-    final frontCount = cameras.where((camera) => _cameraFacing(camera) == CameraFacingFilter.front).length;
-    final backCount = cameras.where((camera) => _cameraFacing(camera) == CameraFacingFilter.back).length;
-    final externalCount = cameras.where((camera) => _cameraFacing(camera) == CameraFacingFilter.external).length;
+    final frontCount = cameras
+        .where((camera) => _cameraFacing(camera) == CameraFacingFilter.front)
+        .length;
+    final backCount = cameras
+        .where((camera) => _cameraFacing(camera) == CameraFacingFilter.back)
+        .length;
+    final externalCount = cameras
+        .where((camera) => _cameraFacing(camera) == CameraFacingFilter.external)
+        .length;
 
     final filtered = cameras
         .where((camera) {
@@ -85,7 +102,8 @@ class _CamerasSectionPageState extends ConsumerState<CamerasSectionPage> {
         .toList(growable: false);
 
     return RefreshIndicator(
-      onRefresh: () => ref.read(getSectionMetadataProvider)('cameras', forceRefresh: true),
+      onRefresh: () =>
+          ref.read(getSectionMetadataProvider)('cameras', forceRefresh: true),
       child: ListView(
         padding: EdgeInsets.all(tokens.space2),
         children: [
@@ -106,7 +124,11 @@ class _CamerasSectionPageState extends ConsumerState<CamerasSectionPage> {
           ),
           SizedBox(height: tokens.space2),
           TextField(
-            decoration: InputDecoration(prefixIcon: const Icon(Icons.search), hintText: 'search.hintCameras'.tr, border: const OutlineInputBorder()),
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.search),
+              hintText: 'search.hintCameras'.tr,
+              border: const OutlineInputBorder(),
+            ),
             onChanged: (v) => setState(() => _query = v),
           ),
           SizedBox(height: tokens.space2),
@@ -132,14 +154,18 @@ class _CamerasSectionPageState extends ConsumerState<CamerasSectionPage> {
               _FilterChip(
                 selected: _filter == CameraFacingFilter.external,
                 label: 'filter.external'.tr,
-                onTap: () => setState(() => _filter = CameraFacingFilter.external),
+                onTap: () =>
+                    setState(() => _filter = CameraFacingFilter.external),
               ),
             ],
           ),
           SizedBox(height: tokens.space2),
           if (filtered.isEmpty)
             Card(
-              child: Padding(padding: EdgeInsets.all(tokens.space2), child: Text('search.noResults'.tr)),
+              child: Padding(
+                padding: EdgeInsets.all(tokens.space2),
+                child: Text('search.noResults'.tr),
+              ),
             )
           else
             ...filtered.map((camera) => _CameraCard(camera: camera)),
@@ -149,13 +175,19 @@ class _CamerasSectionPageState extends ConsumerState<CamerasSectionPage> {
   }
 
   List<Map<String, dynamic>> _extractCameras(InfoSectionEntity section) {
-    final item = section.items.cast<InfoItemEntity?>().firstWhere((it) => it?.labelKey == 'cameras.cameras', orElse: () => null);
+    final item = section.items.cast<InfoItemEntity?>().firstWhere(
+      (it) => it?.labelKey == 'cameras.cameras',
+      orElse: () => null,
+    );
     final raw = item?.value?.text;
     if (raw == null || raw.isEmpty) return const [];
     try {
       final decoded = jsonDecode(raw);
       if (decoded is List) {
-        return decoded.whereType<Map>().map((e) => e.cast<String, dynamic>()).toList(growable: false);
+        return decoded
+            .whereType<Map>()
+            .map((e) => e.cast<String, dynamic>())
+            .toList(growable: false);
       }
       if (decoded is Map) {
         return [decoded.cast<String, dynamic>()];
@@ -165,7 +197,11 @@ class _CamerasSectionPageState extends ConsumerState<CamerasSectionPage> {
   }
 
   CameraFacingFilter _cameraFacing(Map<String, dynamic> camera) {
-    final rawValue = camera['lensFacing'] ?? camera['facing'] ?? camera['lens_facing'] ?? camera['lensFacingString'];
+    final rawValue =
+        camera['lensFacing'] ??
+        camera['facing'] ??
+        camera['lens_facing'] ??
+        camera['lensFacingString'];
 
     if (rawValue is num) {
       final v = rawValue.toInt();
@@ -192,7 +228,11 @@ class _CamerasSectionPageState extends ConsumerState<CamerasSectionPage> {
 }
 
 class _FilterChip extends StatelessWidget {
-  const _FilterChip({required this.selected, required this.label, required this.onTap});
+  const _FilterChip({
+    required this.selected,
+    required this.label,
+    required this.onTap,
+  });
 
   final bool selected;
   final String label;
@@ -203,7 +243,12 @@ class _FilterChip extends StatelessWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(24),
       onTap: onTap,
-      child: Chip(label: Text(label), backgroundColor: selected ? Theme.of(context).colorScheme.primaryContainer : null),
+      child: Chip(
+        label: Text(label),
+        backgroundColor: selected
+            ? Theme.of(context).colorScheme.primaryContainer
+            : null,
+      ),
     );
   }
 }
@@ -219,7 +264,10 @@ class _SummaryBadge extends StatelessWidget {
     final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(color: theme.colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(999)),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(999),
+      ),
       child: Text('$label: $value', style: theme.textTheme.labelLarge),
     );
   }
@@ -234,11 +282,16 @@ class _CameraCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<ThemeTokensExtension>()!.tokens;
     final encoder = const JsonEncoder.withIndent('  ');
-    final id = (camera['cameraId'] ?? camera['id'] ?? camera['name'])?.toString();
+    final id = (camera['cameraId'] ?? camera['id'] ?? camera['name'])
+        ?.toString();
     final title = id == null || id.isEmpty ? 'Camera' : 'Camera $id';
-    final facing = (camera['lensFacingString'] ?? camera['lensFacing'] ?? camera['facing'])?.toString();
+    final facing =
+        (camera['lensFacingString'] ?? camera['lensFacing'] ?? camera['facing'])
+            ?.toString();
     final level = camera['hardwareLevel']?.toString();
-    final focal = _numString(camera['focalLengthsMm'] ?? camera['focalLengths']);
+    final focal = _numString(
+      camera['focalLengthsMm'] ?? camera['focalLengths'],
+    );
     final apertures = _numString(camera['apertures']);
     final physicalIds = _listSummary(camera['physicalCameraIds']);
     final capabilities = _listSummary(camera['capabilities']);
@@ -252,7 +305,12 @@ class _CameraCard extends StatelessWidget {
         subtitle: Text(facing ?? 'Unknown facing'),
         children: [
           Padding(
-            padding: EdgeInsets.fromLTRB(tokens.space2, 0, tokens.space2, tokens.space2),
+            padding: EdgeInsets.fromLTRB(
+              tokens.space2,
+              0,
+              tokens.space2,
+              tokens.space2,
+            ),
             child: Column(
               children: [
                 _SpecRow(label: 'Facing', value: facing),
@@ -268,7 +326,12 @@ class _CameraCard extends StatelessWidget {
                   tilePadding: EdgeInsets.zero,
                   childrenPadding: EdgeInsets.zero,
                   title: const Text('Advanced raw payload'),
-                  children: [Align(alignment: Alignment.centerLeft, child: SelectableText(encoder.convert(camera)))],
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: SelectableText(encoder.convert(camera)),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -289,7 +352,12 @@ class _CameraCard extends StatelessWidget {
     if (value is List) {
       final parts = value
           .whereType<num>()
-          .map((e) => e.toStringAsFixed(2).replaceFirst(RegExp(r'0+$'), '').replaceFirst(RegExp(r'\.$'), ''))
+          .map(
+            (e) => e
+                .toStringAsFixed(2)
+                .replaceFirst(RegExp(r'0+$'), '')
+                .replaceFirst(RegExp(r'\.$'), ''),
+          )
           .toList(growable: false);
       return parts.isEmpty ? null : parts.join(', ');
     }

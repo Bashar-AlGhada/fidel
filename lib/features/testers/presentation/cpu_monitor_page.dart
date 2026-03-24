@@ -8,8 +8,8 @@ import '../../../application/sampling/sampling_provider.dart';
 import '../../../core/theme/theme_tokens.dart';
 import '../../../core/ui/app_states.dart';
 
-class CpuPage extends ConsumerWidget {
-  const CpuPage({super.key});
+class CpuMonitorPage extends ConsumerWidget {
+  const CpuMonitorPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -19,11 +19,12 @@ class CpuPage extends ConsumerWidget {
         ref.read(activeModuleProvider.notifier).setModule(ActiveModule.testers);
       });
     }
+
     final cpu = ref.watch(cpuStreamProvider);
     final tokens = Theme.of(context).extension<ThemeTokensExtension>()!.tokens;
 
     return Scaffold(
-      appBar: AppBar(title: Text('nav.cpu'.tr)),
+      appBar: AppBar(title: Text('testers.cpuMonitor'.tr)),
       body: cpu.when(
         data: (v) {
           final percent = v.usage.toWholePercent();
@@ -32,19 +33,17 @@ class CpuPage extends ConsumerWidget {
             children: [
               Text(
                 '$percent%',
-                style: Theme.of(context).textTheme.displaySmall,
+                style: Theme.of(context).textTheme.displayMedium,
               ),
               SizedBox(height: tokens.space3),
-              RepaintBoundary(
-                child: LinearProgressIndicator(value: v.usage.value),
-              ),
+              LinearProgressIndicator(value: v.usage.value),
               SizedBox(height: tokens.space3),
-              Text('Cores: ${v.cores}'),
+              Text('cpu.cores'.trParams({'value': '${v.cores}'})),
             ],
           );
         },
         loading: () => const AppLoadingState(),
-        error: (err, st) => AppErrorState(
+        error: (error, stack) => AppErrorState(
           title: 'availability.unavailable'.tr,
           actionLabel: 'action.retry'.tr,
           onAction: () => ref.invalidate(cpuStreamProvider),

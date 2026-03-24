@@ -78,9 +78,14 @@ class AppEmptyState extends StatelessWidget {
                         textAlign: TextAlign.center,
                       ),
                     ],
-                    if (!compact && actionLabel != null && onAction != null) ...[
+                    if (!compact &&
+                        actionLabel != null &&
+                        onAction != null) ...[
                       SizedBox(height: tokens.space3),
-                      FilledButton(onPressed: onAction, child: Text(actionLabel!)),
+                      FilledButton(
+                        onPressed: onAction,
+                        child: Text(actionLabel!),
+                      ),
                     ],
                   ],
                 ),
@@ -140,7 +145,9 @@ class AppErrorState extends StatelessWidget {
                         textAlign: TextAlign.center,
                       ),
                     ],
-                    if (!compact && actionLabel != null && onAction != null) ...[
+                    if (!compact &&
+                        actionLabel != null &&
+                        onAction != null) ...[
                       SizedBox(height: tokens.space3),
                       OutlinedButton(
                         onPressed: onAction,

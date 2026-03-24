@@ -3,10 +3,14 @@ import '../../domain/units/units_formatter.dart';
 
 class UnitsFormatterImpl implements UnitsFormatter {
   @override
-  String formatTemperature({required double celsius, required TemperatureUnit unit}) {
+  String formatTemperature({
+    required double celsius,
+    required TemperatureUnit unit,
+  }) {
     return switch (unit) {
       TemperatureUnit.celsius => '${celsius.toStringAsFixed(1)}°C',
-      TemperatureUnit.fahrenheit => '${(celsius * 9 / 5 + 32).toStringAsFixed(1)}°F',
+      TemperatureUnit.fahrenheit =>
+        '${(celsius * 9 / 5 + 32).toStringAsFixed(1)}°F',
     };
   }
 
@@ -16,7 +20,9 @@ class UnitsFormatterImpl implements UnitsFormatter {
     if (bytes < 1024) return '$bytes B';
 
     final k = base == DataSizeBase.base2 ? 1024.0 : 1000.0;
-    final units = base == DataSizeBase.base2 ? const ['KiB', 'MiB', 'GiB', 'TiB'] : const ['kB', 'MB', 'GB', 'TB'];
+    final units = base == DataSizeBase.base2
+        ? const ['KiB', 'MiB', 'GiB', 'TiB']
+        : const ['kB', 'MB', 'GB', 'TB'];
 
     var value = bytes.toDouble();
     var idx = -1;
@@ -29,13 +35,19 @@ class UnitsFormatterImpl implements UnitsFormatter {
   }
 
   @override
-  String formatRate({required double bytesPerSecond, required RateUnit unit, required DataSizeBase base}) {
+  String formatRate({
+    required double bytesPerSecond,
+    required RateUnit unit,
+    required DataSizeBase base,
+  }) {
     final isBits = unit == RateUnit.bitsPerSecond;
     final raw = isBits ? bytesPerSecond * 8.0 : bytesPerSecond;
     final suffix = isBits ? 'bps' : 'B/s';
 
     final k = base == DataSizeBase.base2 ? 1024.0 : 1000.0;
-    final units = base == DataSizeBase.base2 ? const ['K', 'M', 'G', 'T'] : const ['k', 'M', 'G', 'T'];
+    final units = base == DataSizeBase.base2
+        ? const ['K', 'M', 'G', 'T']
+        : const ['k', 'M', 'G', 'T'];
 
     var value = raw;
     var idx = -1;

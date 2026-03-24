@@ -27,20 +27,31 @@ class _SensorsSectionPageState extends ConsumerState<SensorsSectionPage> {
   @override
   Widget build(BuildContext context) {
     final activeModule = ref.watch(activeModuleProvider);
-    if (activeModule != ActiveModule.sensors) {
+    if (activeModule != ActiveModule.info) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(activeModuleProvider.notifier).setModule(ActiveModule.sensors);
+        ref.read(activeModuleProvider.notifier).setModule(ActiveModule.info);
       });
     }
 
-    final sensorsAsync = ref.watch(sensorsStreamProvider((samplingPeriodUs: _samplingPeriodUs, maxSamples: _maxSamples)));
+    final sensorsAsync = ref.watch(
+      sensorsStreamProvider((
+        samplingPeriodUs: _samplingPeriodUs,
+        maxSamples: _maxSamples,
+      )),
+    );
 
     final tokens = Theme.of(context).extension<ThemeTokensExtension>()!.tokens;
 
     return Scaffold(
       appBar: AppBar(
         title: Text('section.sensors'.tr),
-        actions: [IconButton(icon: const Icon(Icons.upload_file), onPressed: () => _exportSensors(context, sensorsAsync.asData?.value))],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.upload_file),
+            onPressed: () =>
+                _exportSensors(context, sensorsAsync.asData?.value),
+          ),
+        ],
       ),
       body: sensorsAsync.when(
         data: (sensors) {
@@ -58,7 +69,13 @@ class _SensorsSectionPageState extends ConsumerState<SensorsSectionPage> {
               SearchBar(
                 hintText: 'search.hintSensors'.tr,
                 onChanged: (v) => setState(() => _query = v),
-                trailing: [if (_query.isNotEmpty) IconButton(icon: const Icon(Icons.close), onPressed: () => setState(() => _query = ''))],
+                trailing: [
+                  if (_query.isNotEmpty)
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => setState(() => _query = ''),
+                    ),
+                ],
               ),
               SizedBox(height: tokens.space3),
               if (sensors.isEmpty && _query.trim().isEmpty)
@@ -67,17 +84,27 @@ class _SensorsSectionPageState extends ConsumerState<SensorsSectionPage> {
                   message: 'sensor.noDataHint'.tr,
                   icon: Icons.sensors_off_outlined,
                   actionLabel: 'action.retry'.tr,
-                  onAction: () => ref.invalidate(sensorsStreamProvider((samplingPeriodUs: _samplingPeriodUs, maxSamples: _maxSamples))),
+                  onAction: () => ref.invalidate(
+                    sensorsStreamProvider((
+                      samplingPeriodUs: _samplingPeriodUs,
+                      maxSamples: _maxSamples,
+                    )),
+                  ),
                 )
               else if (filtered.isEmpty)
-                AppEmptyState(title: 'search.noResults'.tr, icon: Icons.search_off_outlined)
+                AppEmptyState(
+                  title: 'search.noResults'.tr,
+                  icon: Icons.search_off_outlined,
+                )
               else
                 ...filtered.map(
                   (sensor) => _SensorTile(
                     sensor: sensor,
                     onTap: () {
-                      final encoded = Uri.encodeComponent(sensor.capability.key);
-                      context.go('/sections/sensors/$encoded');
+                      final encoded = Uri.encodeComponent(
+                        sensor.capability.key,
+                      );
+                      context.go('/info/sensors/$encoded');
                     },
                   ),
                 ),
@@ -88,21 +115,33 @@ class _SensorsSectionPageState extends ConsumerState<SensorsSectionPage> {
         error: (err, st) => AppErrorState(
           title: 'availability.unavailable'.tr,
           actionLabel: 'action.retry'.tr,
-          onAction: () => ref.invalidate(sensorsStreamProvider((samplingPeriodUs: _samplingPeriodUs, maxSamples: _maxSamples))),
+          onAction: () => ref.invalidate(
+            sensorsStreamProvider((
+              samplingPeriodUs: _samplingPeriodUs,
+              maxSamples: _maxSamples,
+            )),
+          ),
         ),
       ),
     );
   }
 
-  Future<void> _exportSensors(BuildContext context, List<SensorEntity>? sensors) async {
+  Future<void> _exportSensors(
+    BuildContext context,
+    List<SensorEntity>? sensors,
+  ) async {
     if (sensors == null || sensors.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('availability.unavailable'.tr)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('availability.unavailable'.tr)));
       return;
     }
 
     final filtered = _filterSensors(sensors, _query);
     if (filtered.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('search.noResults'.tr)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('search.noResults'.tr)));
       return;
     }
 
@@ -110,7 +149,11 @@ class _SensorsSectionPageState extends ConsumerState<SensorsSectionPage> {
     if (format == null) return;
 
     final service = ref.read(exportServiceProvider);
-    final file = await service.exportSensors(filtered, format: format, fileBaseName: 'fidel-sensors');
+    final file = await service.exportSensors(
+      filtered,
+      format: format,
+      fileBaseName: 'fidel-sensors',
+    );
     await service.share(file);
   }
 
@@ -120,7 +163,8 @@ class _SensorsSectionPageState extends ConsumerState<SensorsSectionPage> {
     return sensors
         .where((s) {
           final cap = s.capability;
-          final text = '${cap.name} ${cap.vendor} ${cap.type} ${cap.key}'.toLowerCase();
+          final text = '${cap.name} ${cap.vendor} ${cap.type} ${cap.key}'
+              .toLowerCase();
           return text.contains(q);
         })
         .toList(growable: false);
@@ -128,7 +172,12 @@ class _SensorsSectionPageState extends ConsumerState<SensorsSectionPage> {
 }
 
 class _ControlsCard extends StatelessWidget {
-  const _ControlsCard({required this.samplingPeriodUs, required this.maxSamples, required this.onSamplingChanged, required this.onMaxSamplesChanged});
+  const _ControlsCard({
+    required this.samplingPeriodUs,
+    required this.maxSamples,
+    required this.onSamplingChanged,
+    required this.onMaxSamplesChanged,
+  });
 
   final int samplingPeriodUs;
   final int maxSamples;
@@ -143,7 +192,10 @@ class _ControlsCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('sensors.controls'.tr, style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'sensors.controls'.tr,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 12),
             Row(
               children: [
@@ -193,7 +245,9 @@ class _SensorTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cap = sensor.capability;
-    final latest = sensor.samples.samples.isEmpty ? null : sensor.samples.samples.last;
+    final latest = sensor.samples.samples.isEmpty
+        ? null
+        : sensor.samples.samples.last;
     final latestText = latest == null || latest.values.isEmpty
         ? 'availability.unavailable'.tr
         : latest.values.map((v) => v.toStringAsFixed(2)).join(', ');
@@ -205,7 +259,12 @@ class _SensorTile extends StatelessWidget {
         subtitle: Text('${cap.vendor} • type ${cap.type}'),
         trailing: SizedBox(
           width: 120,
-          child: Text(latestText, textAlign: TextAlign.end, maxLines: 1, overflow: TextOverflow.ellipsis),
+          child: Text(
+            latestText,
+            textAlign: TextAlign.end,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
         onTap: onTap,
       ),

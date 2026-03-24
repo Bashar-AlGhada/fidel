@@ -5,6 +5,8 @@ class AppTranslations extends Translations {
   Map<String, Map<String, String>> get keys => {
     'en_US': {
       'nav.dashboard': 'Summary',
+      'nav.info': 'Info',
+      'nav.testers': 'Testers',
       'nav.memory': 'Memory',
       'nav.battery': 'Battery',
       'nav.cpu': 'CPU',
@@ -75,7 +77,8 @@ class AppTranslations extends Translations {
       'sensor.power': 'Power',
       'sensor.minDelay': 'Min delay',
       'sensor.notEnoughSamples': 'Not enough samples yet.',
-      'sensor.notEnoughSamplesHint': 'Keep this screen open to collect samples.',
+      'sensor.notEnoughSamplesHint':
+          'Keep this screen open to collect samples.',
       'sensor.noData': 'No data',
       'sensor.noDataHint': 'Waiting for sensor readings.',
       'sensor.invalidData': 'Invalid sensor data',
@@ -176,9 +179,41 @@ class AppTranslations extends Translations {
       'action.retry': 'Retry',
       'action.open': 'Open',
       'action.cancel': 'Cancel',
+      'cpu.cores': 'Cores: @value',
+      'testers.screenTester': 'Screen tester',
+      'testers.screenTesterHint':
+          'Check dead pixels using full-screen color cycling.',
+      'testers.noiseChecker': 'Noise checker',
+      'testers.noiseCheckerHint':
+          'Measure ambient noise with microphone access.',
+      'testers.batteryMonitor': 'Battery monitor',
+      'testers.batteryMonitorHint':
+          'Track battery percentage and live charging state.',
+      'testers.networkMonitor': 'Network monitor',
+      'testers.networkMonitorHint':
+          'Monitor connectivity and transfer speed snapshots.',
+      'testers.cpuMonitor': 'CPU monitor',
+      'testers.cpuMonitorHint': 'Watch CPU usage live.',
+      'testers.tapToCycle': 'Tap to cycle colors',
+      'testers.noiseCheckerPlaceholder':
+          'Microphone meter integration will be enabled in the next step.',
+      'testers.requestMicPermission': 'Request microphone permission',
+      'testers.permissionUnknown': 'Permission status is unknown.',
+      'testers.permissionGranted': 'Microphone permission granted.',
+      'testers.permissionDenied': 'Microphone permission denied.',
+      'testers.permissionPermanentlyDenied':
+          'Microphone permission permanently denied.',
+      'testers.permissionRestricted': 'Microphone permission restricted.',
+      'testers.permissionLimited': 'Microphone permission limited.',
+      'testers.permissionProvisional':
+          'Microphone permission provisionally granted.',
+      'testers.networkMonitorPlaceholder':
+          'Detailed network telemetry integration is pending platform streams.',
     },
     'de_DE': {
       'nav.dashboard': 'Übersicht',
+      'nav.info': 'Info',
+      'nav.testers': 'Tester',
       'nav.memory': 'Speicher',
       'nav.battery': 'Akku',
       'nav.cpu': 'CPU',
@@ -353,9 +388,41 @@ class AppTranslations extends Translations {
       'action.retry': 'Erneut versuchen',
       'action.open': 'Öffnen',
       'action.cancel': 'Abbrechen',
+      'cpu.cores': 'Kerne: @value',
+      'testers.screenTester': 'Bildschirmtester',
+      'testers.screenTesterHint':
+          'Prüfen Sie tote Pixel mit Vollbild-Farbwechsel.',
+      'testers.noiseChecker': 'Geräuschmesser',
+      'testers.noiseCheckerHint':
+          'Messen Sie Umgebungsgeräusche mit Mikrofonzugriff.',
+      'testers.batteryMonitor': 'Akkumonitor',
+      'testers.batteryMonitorHint':
+          'Verfolgen Sie Akkustand und Ladezustand in Echtzeit.',
+      'testers.networkMonitor': 'Netzwerkmonitor',
+      'testers.networkMonitorHint':
+          'Überwachen Sie Verbindung und Geschwindigkeitsdaten.',
+      'testers.cpuMonitor': 'CPU-Monitor',
+      'testers.cpuMonitorHint': 'CPU-Auslastung live beobachten.',
+      'testers.tapToCycle': 'Tippen, um Farben zu wechseln',
+      'testers.noiseCheckerPlaceholder':
+          'Die Mikrofonmessung wird im nächsten Schritt integriert.',
+      'testers.requestMicPermission': 'Mikrofonberechtigung anfordern',
+      'testers.permissionUnknown': 'Berechtigungsstatus ist unbekannt.',
+      'testers.permissionGranted': 'Mikrofonberechtigung erteilt.',
+      'testers.permissionDenied': 'Mikrofonberechtigung verweigert.',
+      'testers.permissionPermanentlyDenied':
+          'Mikrofonberechtigung dauerhaft verweigert.',
+      'testers.permissionRestricted': 'Mikrofonberechtigung eingeschränkt.',
+      'testers.permissionLimited': 'Mikrofonberechtigung begrenzt.',
+      'testers.permissionProvisional':
+          'Mikrofonberechtigung vorläufig erteilt.',
+      'testers.networkMonitorPlaceholder':
+          'Detaillierte Netzwerktelemetrie folgt mit Plattform-Streams.',
     },
     'fr_FR': {
       'nav.dashboard': 'Résumé',
+      'nav.info': 'Infos',
+      'nav.testers': 'Tests',
       'nav.memory': 'Mémoire',
       'nav.battery': 'Batterie',
       'nav.cpu': 'CPU',
@@ -528,9 +595,39 @@ class AppTranslations extends Translations {
       'action.retry': 'Réessayer',
       'action.open': 'Ouvrir',
       'action.cancel': 'Annuler',
+      'cpu.cores': 'Cœurs : @value',
+      'testers.screenTester': 'Test d’écran',
+      'testers.screenTesterHint':
+          'Vérifiez les pixels morts avec des couleurs plein écran.',
+      'testers.noiseChecker': 'Mesureur de bruit',
+      'testers.noiseCheckerHint': 'Mesurez le bruit ambiant via le microphone.',
+      'testers.batteryMonitor': 'Moniteur batterie',
+      'testers.batteryMonitorHint':
+          'Suivez le niveau et l’état de charge en direct.',
+      'testers.networkMonitor': 'Moniteur réseau',
+      'testers.networkMonitorHint':
+          'Surveillez la connectivité et la vitesse réseau.',
+      'testers.cpuMonitor': 'Moniteur CPU',
+      'testers.cpuMonitorHint': 'Suivez l’utilisation CPU en direct.',
+      'testers.tapToCycle': 'Touchez pour changer de couleur',
+      'testers.noiseCheckerPlaceholder':
+          'Le sonomètre micro sera intégré à l’étape suivante.',
+      'testers.requestMicPermission': 'Demander l’accès micro',
+      'testers.permissionUnknown': 'Statut de permission inconnu.',
+      'testers.permissionGranted': 'Permission micro accordée.',
+      'testers.permissionDenied': 'Permission micro refusée.',
+      'testers.permissionPermanentlyDenied':
+          'Permission micro refusée définitivement.',
+      'testers.permissionRestricted': 'Permission micro restreinte.',
+      'testers.permissionLimited': 'Permission micro limitée.',
+      'testers.permissionProvisional': 'Permission micro provisoire accordée.',
+      'testers.networkMonitorPlaceholder':
+          'La télémétrie réseau détaillée arrive avec des flux natifs.',
     },
     'es_ES': {
       'nav.dashboard': 'Resumen',
+      'nav.info': 'Info',
+      'nav.testers': 'Pruebas',
       'nav.memory': 'Memoria',
       'nav.battery': 'Batería',
       'nav.cpu': 'CPU',
@@ -705,9 +802,41 @@ class AppTranslations extends Translations {
       'action.retry': 'Reintentar',
       'action.open': 'Abrir',
       'action.cancel': 'Cancelar',
+      'cpu.cores': 'Núcleos: @value',
+      'testers.screenTester': 'Probador de pantalla',
+      'testers.screenTesterHint':
+          'Revisa píxeles muertos con ciclo de colores a pantalla completa.',
+      'testers.noiseChecker': 'Medidor de ruido',
+      'testers.noiseCheckerHint':
+          'Mide el ruido ambiente con acceso al micrófono.',
+      'testers.batteryMonitor': 'Monitor de batería',
+      'testers.batteryMonitorHint':
+          'Sigue el porcentaje y estado de carga en vivo.',
+      'testers.networkMonitor': 'Monitor de red',
+      'testers.networkMonitorHint':
+          'Supervisa conectividad y velocidad de red.',
+      'testers.cpuMonitor': 'Monitor de CPU',
+      'testers.cpuMonitorHint': 'Observa uso de CPU en vivo.',
+      'testers.tapToCycle': 'Toca para cambiar color',
+      'testers.noiseCheckerPlaceholder':
+          'La integración del medidor de micrófono llegará en el siguiente paso.',
+      'testers.requestMicPermission': 'Solicitar permiso de micrófono',
+      'testers.permissionUnknown': 'Estado de permiso desconocido.',
+      'testers.permissionGranted': 'Permiso de micrófono concedido.',
+      'testers.permissionDenied': 'Permiso de micrófono denegado.',
+      'testers.permissionPermanentlyDenied':
+          'Permiso de micrófono denegado permanentemente.',
+      'testers.permissionRestricted': 'Permiso de micrófono restringido.',
+      'testers.permissionLimited': 'Permiso de micrófono limitado.',
+      'testers.permissionProvisional':
+          'Permiso de micrófono provisional concedido.',
+      'testers.networkMonitorPlaceholder':
+          'La telemetría de red detallada llegará con streams nativos.',
     },
     'ar': {
       'nav.dashboard': 'ملخص',
+      'nav.info': 'معلومات',
+      'nav.testers': 'الاختبارات',
       'nav.memory': 'الذاكرة',
       'nav.battery': 'البطارية',
       'nav.cpu': 'المعالج',
@@ -782,7 +911,8 @@ class AppTranslations extends Translations {
       'sensor.noData': 'لا توجد بيانات',
       'sensor.noDataHint': 'بانتظار قراءات الحساس.',
       'sensor.invalidData': 'بيانات حساس غير صالحة',
-      'sensor.invalidDataHint': 'تم استلام قيم غير قابلة للقراءة. حاول مرة أخرى.',
+      'sensor.invalidDataHint':
+          'تم استلام قيم غير قابلة للقراءة. حاول مرة أخرى.',
 
       'memory.used': 'المستخدم: @value',
       'memory.available': 'المتاح: @value',
@@ -879,6 +1009,31 @@ class AppTranslations extends Translations {
       'action.retry': 'إعادة المحاولة',
       'action.open': 'فتح',
       'action.cancel': 'إلغاء',
+      'cpu.cores': 'الأنوية: @value',
+      'testers.screenTester': 'فاحص الشاشة',
+      'testers.screenTesterHint':
+          'افحص البكسلات التالفة عبر تبديل ألوان ملء الشاشة.',
+      'testers.noiseChecker': 'فاحص الضجيج',
+      'testers.noiseCheckerHint': 'قِس الضجيج المحيط بعد منح إذن الميكروفون.',
+      'testers.batteryMonitor': 'مراقب البطارية',
+      'testers.batteryMonitorHint': 'تتبّع نسبة البطارية وحالة الشحن مباشرة.',
+      'testers.networkMonitor': 'مراقب الشبكة',
+      'testers.networkMonitorHint': 'راقب الاتصال وسرعة الشبكة.',
+      'testers.cpuMonitor': 'مراقب المعالج',
+      'testers.cpuMonitorHint': 'راقب استخدام المعالج لحظيًا.',
+      'testers.tapToCycle': 'اضغط لتبديل الألوان',
+      'testers.noiseCheckerPlaceholder':
+          'سيتم تفعيل عداد صوت الميكروفون في الخطوة القادمة.',
+      'testers.requestMicPermission': 'طلب إذن الميكروفون',
+      'testers.permissionUnknown': 'حالة الإذن غير معروفة.',
+      'testers.permissionGranted': 'تم منح إذن الميكروفون.',
+      'testers.permissionDenied': 'تم رفض إذن الميكروفون.',
+      'testers.permissionPermanentlyDenied': 'تم رفض إذن الميكروفون بشكل دائم.',
+      'testers.permissionRestricted': 'إذن الميكروفون مقيّد.',
+      'testers.permissionLimited': 'إذن الميكروفون محدود.',
+      'testers.permissionProvisional': 'تم منح إذن الميكروفون بشكل مؤقت.',
+      'testers.networkMonitorPlaceholder':
+          'تفاصيل قياس الشبكة ستُضاف مع تدفقات المنصة.',
     },
   };
 }

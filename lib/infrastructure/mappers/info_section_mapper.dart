@@ -5,7 +5,10 @@ import '../../domain/entities/info/info_item_entity.dart';
 import '../../domain/entities/info/info_section_entity.dart';
 
 class InfoSectionMapper {
-  InfoSectionEntity deviceAndBuild({required Map<String, dynamic> device, required Map<String, dynamic> build}) {
+  InfoSectionEntity deviceAndBuild({
+    required Map<String, dynamic> device,
+    required Map<String, dynamic> build,
+  }) {
     return InfoSectionEntity(
       id: 'device-build',
       titleKey: 'section.deviceBuild',
@@ -44,7 +47,10 @@ class InfoSectionMapper {
         _item('display.scaledDensity', data['scaledDensity']),
         _item('display.xdpi', data['xdpi']),
         _item('display.ydpi', data['ydpi']),
-        _item('display.refreshRatesHz', _formatRefreshRates(data['refreshRatesHz'])),
+        _item(
+          'display.refreshRatesHz',
+          _formatRefreshRates(data['refreshRatesHz']),
+        ),
       ],
     );
   }
@@ -88,7 +94,11 @@ class InfoSectionMapper {
   }
 
   InfoSectionEntity cameras(Map<String, dynamic> data) {
-    return InfoSectionEntity(id: 'cameras', titleKey: 'section.cameras', items: [_item('cameras.cameras', data['cameras'])]);
+    return InfoSectionEntity(
+      id: 'cameras',
+      titleKey: 'section.cameras',
+      items: [_item('cameras.cameras', data['cameras'])],
+    );
   }
 
   InfoSectionEntity cellularSim(Map<String, dynamic> data) {
@@ -125,7 +135,11 @@ class InfoSectionMapper {
   }
 
   InfoSectionEntity codecs(Map<String, dynamic> data) {
-    return InfoSectionEntity(id: 'codecs', titleKey: 'section.codecs', items: [_item('codecs.codecs', data['codecs'])]);
+    return InfoSectionEntity(
+      id: 'codecs',
+      titleKey: 'section.codecs',
+      items: [_item('codecs.codecs', data['codecs'])],
+    );
   }
 
   InfoSectionEntity widiMiracast(Map<String, dynamic> data) {
@@ -141,19 +155,29 @@ class InfoSectionMapper {
   }
 
   InfoSectionEntity thermal(Map<String, dynamic> data) {
+    final temperatures = _normalizeThermalTemperatures(data['temperatures']);
     return InfoSectionEntity(
       id: 'thermal',
       titleKey: 'section.thermal',
       items: [
         _item('thermal.timestampMs', data['timestampMs']),
         _item('thermal.thermalStatus', data['thermalStatus']),
-        _item('thermal.temperatures', _normalizeThermalTemperatures(data['temperatures'])),
+        _item('thermal.temperatures', temperatures),
       ],
     );
   }
 
-  InfoSectionEntity unavailable({required String id, required String titleKey, InfoAvailability availability = InfoAvailability.notSupported}) {
-    return InfoSectionEntity(id: id, titleKey: titleKey, items: const [], availability: availability);
+  InfoSectionEntity unavailable({
+    required String id,
+    required String titleKey,
+    InfoAvailability availability = InfoAvailability.notSupported,
+  }) {
+    return InfoSectionEntity(
+      id: id,
+      titleKey: titleKey,
+      items: const [],
+      availability: availability,
+    );
   }
 
   InfoItemEntity _item(String labelKey, Object? value) {
@@ -179,32 +203,149 @@ class InfoSectionMapper {
 
   String? _formatRefreshRates(Object? value) {
     if (value is! List) return null;
-    final formatted = value.map(_asDouble).whereType<double>().where((v) => v.isFinite).toList(growable: false);
+    final formatted = value
+        .map(_asDouble)
+        .whereType<double>()
+        .where((v) => v.isFinite)
+        .toList(growable: false);
     if (formatted.isEmpty) return null;
     return '${formatted.map(_toCompactNumber).join(', ')} Hz';
   }
 
   List<Map<String, dynamic>>? _normalizeThermalTemperatures(Object? raw) {
     if (raw is List) {
-      final items = raw.whereType<Map>().map((entry) => entry.cast<String, dynamic>()).toList(growable: false);
+      final items = raw
+          .whereType<Map>()
+          .map((entry) => _normalizeThermalRow(entry.cast<String, dynamic>()))
+          .whereType<Map<String, dynamic>>()
+          .toList(growable: false);
       return items.isEmpty ? null : items;
     }
 
     if (raw is! Map) return null;
     final map = raw.cast<String, dynamic>();
-    final rows = <Map<String, dynamic>>[];
-
-    final battery = _asDouble(map['batteryTempC']);
-    if (battery != null && battery.isFinite) {
-      rows.add(<String, dynamic>{'name': 'Battery', 'type': 'battery', 'valueC': battery});
-    }
-
-    final cpu = _asDouble(map['cpuTempC']);
-    if (cpu != null && cpu.isFinite) {
-      rows.add(<String, dynamic>{'name': 'CPU', 'type': 'cpu', 'valueC': cpu});
-    }
-
+    final rows = _thermalRowsFromMap(map);
     return rows.isEmpty ? null : rows;
+  }
+
+  List<Map<String, dynamic>> _thermalRowsFromMap(Map<String, dynamic> map) {
+    const knownZones = <({String key, String name, String type})>[
+      (key: 'batteryTempC', name: 'Battery', type: 'battery'),
+      (key: 'cpuTempC', name: 'CPU', type: 'cpu'),
+      (key: 'gpuTempC', name: 'GPU', type: 'gpu'),
+      (key: 'socTempC', name: 'SoC', type: 'soc'),
+      (key: 'modemTempC', name: 'Modem', type: 'modem'),
+      (key: 'wifiTempC', name: 'Wi-Fi', type: 'wifi'),
+      (key: 'skinTempC', name: 'Skin', type: 'skin'),
+      (key: 'usbPortTempC', name: 'USB Port', type: 'usb_port'),
+    ];
+
+    final rows = <Map<String, dynamic>>[];
+    final usedTypes = <String>{};
+
+    for (final zone in knownZones) {
+      final celsius = _asDouble(map[zone.key]);
+      if (celsius == null || !celsius.isFinite) continue;
+      rows.add(<String, dynamic>{
+        'name': zone.name,
+        'type': zone.type,
+        'valueC': celsius,
+      });
+      usedTypes.add(zone.type);
+    }
+
+    for (final entry in map.entries) {
+      if (!_looksLikeTemperatureKey(entry.key)) continue;
+      final row = _normalizeThermalRow(<String, dynamic>{
+        'name': _labelFromThermalKey(entry.key),
+        'type': _typeFromThermalKey(entry.key),
+        'valueC': entry.value,
+      });
+      if (row == null) continue;
+      final type = row['type']?.toString();
+      if (type != null && type.isNotEmpty && usedTypes.contains(type)) continue;
+      if (type != null && type.isNotEmpty) {
+        usedTypes.add(type);
+      }
+      rows.add(row);
+    }
+
+    return rows;
+  }
+
+  Map<String, dynamic>? _normalizeThermalRow(Map<String, dynamic> row) {
+    final value =
+        row['valueC'] ?? row['value'] ?? row['tempC'] ?? row['celsius'];
+    final celsius = _asDouble(value);
+    if (celsius == null || !celsius.isFinite) return null;
+
+    final rawName =
+        row['name'] ??
+        row['label'] ??
+        row['source'] ??
+        row['sensor'] ??
+        row['type'];
+    final label = rawName?.toString().trim();
+    final type = row['type']?.toString().trim();
+
+    return <String, dynamic>{
+      'name': (label == null || label.isEmpty) ? 'Temperature' : label,
+      'type': (type == null || type.isEmpty) ? _typeFromName(label) : type,
+      'valueC': celsius,
+    };
+  }
+
+  bool _looksLikeTemperatureKey(String key) {
+    final lower = key.toLowerCase();
+    return lower.endsWith('tempc') ||
+        lower.endsWith('temp') ||
+        lower.contains('temperature');
+  }
+
+  String _labelFromThermalKey(String key) {
+    final noSuffix = key.replaceAll(RegExp(r'(TempC|Temp|Temperature)$'), '');
+    final spaced = noSuffix
+        .replaceAll(RegExp(r'[_-]+'), ' ')
+        .replaceAllMapped(
+          RegExp(r'([a-z0-9])([A-Z])'),
+          (match) => '${match.group(1)} ${match.group(2)}',
+        )
+        .trim();
+
+    if (spaced.isEmpty) return 'Temperature';
+    return spaced
+        .split(' ')
+        .where((part) => part.isNotEmpty)
+        .map(
+          (part) => part.length == 1
+              ? part.toUpperCase()
+              : '${part[0].toUpperCase()}${part.substring(1).toLowerCase()}',
+        )
+        .join(' ');
+  }
+
+  String _typeFromThermalKey(String key) {
+    final noSuffix = key.replaceAll(RegExp(r'(TempC|Temp|Temperature)$'), '');
+    final snake = noSuffix
+        .replaceAllMapped(
+          RegExp(r'([a-z0-9])([A-Z])'),
+          (match) => '${match.group(1)}_${match.group(2)}',
+        )
+        .replaceAll(RegExp(r'[^A-Za-z0-9]+'), '_')
+        .toLowerCase()
+        .replaceAll(RegExp(r'_+'), '_')
+        .replaceAll(RegExp(r'^_|_$'), '');
+    return snake.isEmpty ? 'unknown' : snake;
+  }
+
+  String _typeFromName(String? name) {
+    final value = name?.trim();
+    if (value == null || value.isEmpty) return 'unknown';
+    return value
+        .replaceAll(RegExp(r'[^A-Za-z0-9]+'), '_')
+        .toLowerCase()
+        .replaceAll(RegExp(r'_+'), '_')
+        .replaceAll(RegExp(r'^_|_$'), '');
   }
 
   double? _asDouble(Object? value) {
@@ -217,7 +358,11 @@ class InfoSectionMapper {
 
   String _toCompactNumber(double value) {
     final fixed = value.toStringAsFixed(2);
-    return fixed.contains('.') ? fixed.replaceFirst(RegExp(r'0+$'), '').replaceFirst(RegExp(r'\.$'), '') : fixed;
+    return fixed.contains('.')
+        ? fixed
+              .replaceFirst(RegExp(r'0+$'), '')
+              .replaceFirst(RegExp(r'\.$'), '')
+        : fixed;
   }
 
   Map<String, dynamic> _coerceMap(Object? value) {

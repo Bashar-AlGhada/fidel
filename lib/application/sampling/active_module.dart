@@ -1,1 +1,11 @@
-enum ActiveModule { dashboard, sections, sensors, cpu, memory, battery, settings }
+enum ActiveModule {
+  dashboard,
+  info,
+  testers,
+  settings,
+  sections,
+  sensors,
+  cpu,
+  memory,
+  battery,
+}

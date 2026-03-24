@@ -12,6 +12,9 @@ class ThemeTokens {
     required this.strokeWidth,
     required this.motionFastMs,
     required this.motionNormalMs,
+    required this.glassBlurSigma,
+    required this.glassTintOpacity,
+    required this.glassBorderOpacity,
   });
 
   final double grid;
@@ -22,6 +25,9 @@ class ThemeTokens {
   final double strokeWidth;
   final int motionFastMs;
   final int motionNormalMs;
+  final double glassBlurSigma;
+  final double glassTintOpacity;
+  final double glassBorderOpacity;
 
   double get space1 => grid;
   double get space2 => grid * 2;
@@ -41,6 +47,9 @@ class ThemeTokens {
     strokeWidth: 1.25,
     motionFastMs: 140,
     motionNormalMs: 220,
+    glassBlurSigma: 14,
+    glassTintOpacity: 0.18,
+    glassBorderOpacity: 0.28,
   );
 }
 
@@ -67,13 +76,34 @@ class ThemeTokensExtension extends ThemeExtension<ThemeTokensExtension> {
         radiusMd: lerpDouble(tokens.radiusMd, other.tokens.radiusMd, t)!,
         radiusLg: lerpDouble(tokens.radiusLg, other.tokens.radiusLg, t)!,
         radiusXl: lerpDouble(tokens.radiusXl, other.tokens.radiusXl, t)!,
-        strokeWidth: lerpDouble(tokens.strokeWidth, other.tokens.strokeWidth, t)!,
-        motionFastMs: (tokens.motionFastMs +
-                ((other.tokens.motionFastMs - tokens.motionFastMs) * t))
-            .round(),
-        motionNormalMs: (tokens.motionNormalMs +
-                ((other.tokens.motionNormalMs - tokens.motionNormalMs) * t))
-            .round(),
+        strokeWidth: lerpDouble(
+          tokens.strokeWidth,
+          other.tokens.strokeWidth,
+          t,
+        )!,
+        motionFastMs:
+            (tokens.motionFastMs +
+                    ((other.tokens.motionFastMs - tokens.motionFastMs) * t))
+                .round(),
+        motionNormalMs:
+            (tokens.motionNormalMs +
+                    ((other.tokens.motionNormalMs - tokens.motionNormalMs) * t))
+                .round(),
+        glassBlurSigma: lerpDouble(
+          tokens.glassBlurSigma,
+          other.tokens.glassBlurSigma,
+          t,
+        )!,
+        glassTintOpacity: lerpDouble(
+          tokens.glassTintOpacity,
+          other.tokens.glassTintOpacity,
+          t,
+        )!,
+        glassBorderOpacity: lerpDouble(
+          tokens.glassBorderOpacity,
+          other.tokens.glassBorderOpacity,
+          t,
+        )!,
       ),
     );
   }

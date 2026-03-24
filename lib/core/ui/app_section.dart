@@ -3,7 +3,14 @@ import 'package:flutter/material.dart';
 import '../theme/theme_tokens.dart';
 
 class AppSection extends StatelessWidget {
-  const AppSection({required this.title, this.subtitle, this.trailing, this.child, this.padding, super.key});
+  const AppSection({
+    required this.title,
+    this.subtitle,
+    this.trailing,
+    this.child,
+    this.padding,
+    super.key,
+  });
 
   final String title;
   final String? subtitle;
@@ -28,11 +35,17 @@ class AppSection extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(title, style: theme.textTheme.titleMedium),
-                    if (subtitle != null) ...[SizedBox(height: tokens.space1), Text(subtitle!, style: theme.textTheme.bodyMedium)],
+                    if (subtitle != null) ...[
+                      SizedBox(height: tokens.space1),
+                      Text(subtitle!, style: theme.textTheme.bodyMedium),
+                    ],
                   ],
                 ),
               ),
-              if (trailing != null) ...[SizedBox(width: tokens.space2), trailing!],
+              if (trailing != null) ...[
+                SizedBox(width: tokens.space2),
+                trailing!,
+              ],
             ],
           ),
           if (child != null) ...[SizedBox(height: tokens.space2), child!],

@@ -8,7 +8,12 @@ import '../../../../core/ui/app_states.dart';
 import '../../../../domain/entities/sensors/sensor_reading_entity.dart';
 
 class SensorChart extends StatefulWidget {
-  const SensorChart({required this.samples, this.height = 180, this.onRetry, super.key});
+  const SensorChart({
+    required this.samples,
+    this.height = 180,
+    this.onRetry,
+    super.key,
+  });
 
   final List<SensorReadingEntity> samples;
   final double height;
@@ -38,7 +43,9 @@ class _SensorChartState extends State<SensorChart> {
     if (samples.isEmpty) {
       return LayoutBuilder(
         builder: (context, constraints) {
-          final height = constraints.maxHeight.isFinite ? math.min(constraints.maxHeight, widget.height) : widget.height;
+          final height = constraints.maxHeight.isFinite
+              ? math.min(constraints.maxHeight, widget.height)
+              : widget.height;
           return SizedBox(
             height: height,
             child: AppEmptyState(
@@ -69,10 +76,16 @@ class _SensorChartState extends State<SensorChart> {
     if (samples.length < 2 || dims == 0 || validPoints < 2) {
       return LayoutBuilder(
         builder: (context, constraints) {
-          final height = constraints.maxHeight.isFinite ? math.min(constraints.maxHeight, widget.height) : widget.height;
+          final height = constraints.maxHeight.isFinite
+              ? math.min(constraints.maxHeight, widget.height)
+              : widget.height;
           return SizedBox(
             height: height,
-            child: AppEmptyState(title: 'sensor.notEnoughSamples'.tr, message: 'sensor.notEnoughSamplesHint'.tr, icon: Icons.show_chart),
+            child: AppEmptyState(
+              title: 'sensor.notEnoughSamples'.tr,
+              message: 'sensor.notEnoughSamplesHint'.tr,
+              icon: Icons.show_chart,
+            ),
           );
         },
       );
@@ -81,7 +94,9 @@ class _SensorChartState extends State<SensorChart> {
     if (!minY.isFinite || !maxY.isFinite) {
       return LayoutBuilder(
         builder: (context, constraints) {
-          final height = constraints.maxHeight.isFinite ? math.min(constraints.maxHeight, widget.height) : widget.height;
+          final height = constraints.maxHeight.isFinite
+              ? math.min(constraints.maxHeight, widget.height)
+              : widget.height;
           return SizedBox(
             height: height,
             child: AppErrorState(
@@ -102,7 +117,9 @@ class _SensorChartState extends State<SensorChart> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final height = constraints.maxHeight.isFinite ? math.min(constraints.maxHeight, widget.height) : widget.height;
+        final height = constraints.maxHeight.isFinite
+            ? math.min(constraints.maxHeight, widget.height)
+            : widget.height;
         return SizedBox(
           height: height,
           child: RepaintBoundary(
@@ -153,13 +170,20 @@ class _SensorChartPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final textStyle = TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 11, height: 1.1);
+    final textStyle = TextStyle(
+      color: colorScheme.onSurfaceVariant,
+      fontSize: 11,
+      height: 1.1,
+    );
     final r = tokens.radiusSm;
     final bg = Paint()..color = colorScheme.surfaceContainerHighest;
-    canvas.drawRRect(RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(r)), bg);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(r)),
+      bg,
+    );
 
-    final yLabelWidth = 42.0;
-    final xLabelHeight = 18.0;
+    final yLabelWidth = 64.0;
+    final xLabelHeight = 20.0;
     final left = tokens.space2 + yLabelWidth;
     final top = tokens.space2;
     final w = size.width - left - tokens.space2;
@@ -174,12 +198,45 @@ class _SensorChartPainter extends CustomPainter {
       canvas.drawLine(Offset(left, y), Offset(left + w, y), gridPaint);
     }
 
-    _paintLabel(canvas: canvas, text: _compact(maxY), style: textStyle, dx: tokens.space1, dy: top - 2, maxWidth: yLabelWidth - tokens.space1);
-    _paintLabel(canvas: canvas, text: _compact(minY), style: textStyle, dx: tokens.space1, dy: top + h - 10, maxWidth: yLabelWidth - tokens.space1);
-    _paintLabel(canvas: canvas, text: '0', style: textStyle, dx: left, dy: top + h + 4, maxWidth: 32);
-    _paintLabel(canvas: canvas, text: '${samples.length - 1}', style: textStyle, dx: left + w - 18, dy: top + h + 4, maxWidth: 26);
+    _paintLabel(
+      canvas: canvas,
+      text: _compact(maxY),
+      style: textStyle,
+      dx: tokens.space1,
+      dy: top - 2,
+      maxWidth: yLabelWidth - tokens.space1,
+    );
+    _paintLabel(
+      canvas: canvas,
+      text: _compact(minY),
+      style: textStyle,
+      dx: tokens.space1,
+      dy: top + h - 10,
+      maxWidth: yLabelWidth - tokens.space1,
+    );
+    _paintLabel(
+      canvas: canvas,
+      text: '0',
+      style: textStyle,
+      dx: left,
+      dy: top + h + 4,
+      maxWidth: 48,
+    );
+    _paintLabel(
+      canvas: canvas,
+      text: '${samples.length - 1}',
+      style: textStyle,
+      dx: left + w - 32,
+      dy: top + h + 4,
+      maxWidth: 40,
+    );
 
-    final colors = <Color>[colorScheme.primary, colorScheme.tertiary, colorScheme.secondary, colorScheme.error];
+    final colors = <Color>[
+      colorScheme.primary,
+      colorScheme.tertiary,
+      colorScheme.secondary,
+      colorScheme.error,
+    ];
 
     for (var dim = 0; dim < dims; dim++) {
       final linePaint = Paint()
@@ -220,7 +277,10 @@ class _SensorChartPainter extends CustomPainter {
       ..color = colorScheme.onSurfaceVariant.withValues(alpha: 0.18)
       ..style = PaintingStyle.stroke
       ..strokeWidth = tokens.strokeWidth;
-    canvas.drawRRect(RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(r)), border);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(r)),
+      border,
+    );
   }
 
   void _paintLabel({
@@ -242,7 +302,11 @@ class _SensorChartPainter extends CustomPainter {
 
   String _compact(double value) {
     final fixed = value.toStringAsFixed(2);
-    return fixed.contains('.') ? fixed.replaceFirst(RegExp(r'0+$'), '').replaceFirst(RegExp(r'\.$'), '') : fixed;
+    return fixed.contains('.')
+        ? fixed
+              .replaceFirst(RegExp(r'0+$'), '')
+              .replaceFirst(RegExp(r'\.$'), '')
+        : fixed;
   }
 
   @override

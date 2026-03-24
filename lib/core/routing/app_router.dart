@@ -13,6 +13,7 @@ import '../../features/testers/presentation/noise_checker_page.dart';
 import '../../features/testers/presentation/screen_tester_page.dart';
 import '../../features/testers/presentation/testers_page.dart';
 import 'app_nav_shell.dart';
+import 'page_transitions.dart';
 
 GoRouter buildRouter() {
   return GoRouter(
@@ -60,9 +61,13 @@ GoRouter buildRouter() {
                     routes: [
                       GoRoute(
                         path: ':sensorKey',
-                        builder: (c, s) => SensorDetailPage(
-                          sensorKey: Uri.decodeComponent(
-                            s.pathParameters['sensorKey'] ?? '',
+                        pageBuilder: (c, s) => buildSlideUpTransition(
+                          context: c,
+                          state: s,
+                          child: SensorDetailPage(
+                            sensorKey: Uri.decodeComponent(
+                              s.pathParameters['sensorKey'] ?? '',
+                            ),
                           ),
                         ),
                       ),
@@ -81,21 +86,44 @@ GoRouter buildRouter() {
             routes: [
               GoRoute(
                 path: 'screen',
-                builder: (c, s) => const ScreenTesterPage(),
+                pageBuilder: (c, s) => buildFadeScaleTransition(
+                  context: c,
+                  state: s,
+                  child: const ScreenTesterPage(),
+                ),
               ),
               GoRoute(
                 path: 'noise',
-                builder: (c, s) => const NoiseCheckerPage(),
+                pageBuilder: (c, s) => buildFadeScaleTransition(
+                  context: c,
+                  state: s,
+                  child: const NoiseCheckerPage(),
+                ),
               ),
               GoRoute(
                 path: 'battery',
-                builder: (c, s) => const BatteryMonitorPage(),
+                pageBuilder: (c, s) => buildFadeScaleTransition(
+                  context: c,
+                  state: s,
+                  child: const BatteryMonitorPage(),
+                ),
               ),
               GoRoute(
                 path: 'network',
-                builder: (c, s) => const NetworkMonitorPage(),
+                pageBuilder: (c, s) => buildFadeScaleTransition(
+                  context: c,
+                  state: s,
+                  child: const NetworkMonitorPage(),
+                ),
               ),
-              GoRoute(path: 'cpu', builder: (c, s) => const CpuMonitorPage()),
+              GoRoute(
+                path: 'cpu',
+                pageBuilder: (c, s) => buildFadeScaleTransition(
+                  context: c,
+                  state: s,
+                  child: const CpuMonitorPage(),
+                ),
+              ),
             ],
           ),
         ],

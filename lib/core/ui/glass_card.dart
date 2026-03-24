@@ -10,6 +10,7 @@ class GlassCard extends StatelessWidget {
     this.padding,
     this.margin,
     this.onTap,
+    this.semanticLabel,
     super.key,
   });
 
@@ -17,6 +18,7 @@ class GlassCard extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
   final EdgeInsetsGeometry? margin;
   final VoidCallback? onTap;
+  final String? semanticLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -61,15 +63,23 @@ class GlassCard extends StatelessWidget {
       ),
     );
 
+    final wrappedPanel = semanticLabel != null
+        ? Semantics(label: semanticLabel, child: panel)
+        : panel;
+
     if (onTap == null) {
-      return Container(margin: margin, child: panel);
+      return Container(margin: margin, child: wrappedPanel);
     }
 
     return Container(
       margin: margin,
       child: Material(
         color: Colors.transparent,
-        child: InkWell(borderRadius: radius, onTap: onTap, child: panel),
+        child: InkWell(
+          borderRadius: radius,
+          onTap: onTap,
+          child: wrappedPanel,
+        ),
       ),
     );
   }

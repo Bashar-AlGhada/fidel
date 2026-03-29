@@ -109,12 +109,20 @@ flutter_launcher_icons:
   android: true
   ios: false
   image_path: assets/images/icon.PNG
+  # Disable adaptive icons to prevent cropping of the full square design
   adaptive_icon_background: "#081018"
-  adaptive_icon_foreground: assets/images/icon.PNG
+  # Remove adaptive foreground to use legacy icon which won't be cropped
+  remove_alpha_ios: true
 
 flutter_native_splash:
   color: "#081018"
   image: assets/images/icon.PNG
+  # Adjust image size to prevent cropping on splash screen
+  android_gravity: center
+  ios_content_mode: center
   android_12:
     color: "#081018"
     image: assets/images/icon.PNG
+    # Ensure the icon isn't cropped on Android 12+
+    image_dark: assets/images/icon.PNG
+    color_dark: "#081018"

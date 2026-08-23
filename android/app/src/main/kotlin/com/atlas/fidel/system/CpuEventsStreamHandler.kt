@@ -73,9 +73,14 @@ class CpuEventsStreamHandler(private val context: Context) : EventChannel.Stream
     mainHandler.postDelayed(ticker, 1000)
   }
 
-  override fun onCancel(arguments: Any?) {
+  /** Stops the ticker; safe to call multiple times. */
+  fun stop() {
     mainHandler.removeCallbacks(ticker)
     active.set(false)
     sink = null
+  }
+
+  override fun onCancel(arguments: Any?) {
+    stop()
   }
 }

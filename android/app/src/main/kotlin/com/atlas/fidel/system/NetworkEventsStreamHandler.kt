@@ -8,7 +8,7 @@ import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
-import com.atlas.fidel.BuildConfig
+import android.content.ApplicationInfo
 import android.content.Context
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
@@ -85,7 +85,7 @@ class NetworkEventsStreamHandler(private val context: Context) : EventChannel.St
       } catch (e: Exception) {
         // OEM connectivity/NFC APIs vary wildly; a single bad call must
         // never take down the main thread or kill the poll loop.
-        if (BuildConfig.DEBUG) {
+        if (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) {
           android.util.Log.w("fidel_network", "poll failed", e)
         }
       }
@@ -222,7 +222,14 @@ class NetworkEventsStreamHandler(private val context: Context) : EventChannel.St
     val sm = context.getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE)
       as? SubscriptionManager ?: return
 
-    @Suppress("DEPRECATION")
+    /** getDbm() via reflection: present on every API level, but its Kotlin
+   *  synthetic property has proven toolchain-dependent. */
+  private fun signalDbm(strength: SignalStrength): Int? = try {
+    SignalStrength::class.java.getMethod("getDbm").invoke(strength) as? Int
+  } catch (_: Exception) {
+    null
+  }
+  @Suppress("DEPRECATION")
     fun wire(subscriptionId: Int) {
       val tm = (context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager)
         .createForSubscriptionId(subscriptionId)
@@ -255,7 +262,7 @@ class NetworkEventsStreamHandler(private val context: Context) : EventChannel.St
           "kind" to "cell",
           // Multi-SIM note: frames from every subscription feed one merged
           // Dart-side entity; the strongest/last update wins per field.
-          "dbm" to strength.dbm,
+          "dbm" to signalDbm(strength),
           "level" to strength.level,
           "isGsm" to strength.isGsm,
         )

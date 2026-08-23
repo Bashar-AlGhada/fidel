@@ -34,9 +34,14 @@ class MemoryEventsStreamHandler(private val context: Context) : EventChannel.Str
     mainHandler.post(ticker)
   }
 
-  override fun onCancel(arguments: Any?) {
+  /** Stops the ticker; safe to call multiple times. */
+  fun stop() {
     mainHandler.removeCallbacks(ticker)
     active.set(false)
     sink = null
+  }
+
+  override fun onCancel(arguments: Any?) {
+    stop()
   }
 }

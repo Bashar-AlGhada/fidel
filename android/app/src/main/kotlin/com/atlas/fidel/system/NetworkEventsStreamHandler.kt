@@ -8,7 +8,7 @@ import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
-import android.content.ApplicationInfo
+import android.content.pm.ApplicationInfo
 import android.content.Context
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
@@ -223,13 +223,8 @@ class NetworkEventsStreamHandler(private val context: Context) : EventChannel.St
       as? SubscriptionManager ?: return
 
     /** getDbm() via reflection: present on every API level, but its Kotlin
-   *  synthetic property has proven toolchain-dependent. */
-  private fun signalDbm(strength: SignalStrength): Int? = try {
-    SignalStrength::class.java.getMethod("getDbm").invoke(strength) as? Int
-  } catch (_: Exception) {
-    null
-  }
-  @Suppress("DEPRECATION")
+     *  synthetic property has proven toolchain-dependent. */
+    @Suppress("DEPRECATION")
     fun wire(subscriptionId: Int) {
       val tm = (context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager)
         .createForSubscriptionId(subscriptionId)
@@ -255,6 +250,13 @@ class NetworkEventsStreamHandler(private val context: Context) : EventChannel.St
   }
 
   @Suppress("DEPRECATION")
+  /** getDbm() via reflection: present on every API level, but its Kotlin
+   *  synthetic property has proven toolchain-dependent. */
+  private fun signalDbm(strength: SignalStrength): Int? = try {
+    SignalStrength::class.java.getMethod("getDbm").invoke(strength) as? Int
+  } catch (_: Exception) {
+    null
+  }
   private fun emitCell(subscriptionId: Int, strength: SignalStrength) {
     mainHandler.post {
       sink?.success(

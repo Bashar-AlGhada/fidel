@@ -4,10 +4,10 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../application/providers/system_providers.dart';
-import '../../../application/sampling/active_module.dart';
-import '../../../application/sampling/sampling_provider.dart';
 import '../../../core/theme/theme_tokens.dart';
 import '../../../core/ui/app_card.dart';
+import '../../../core/ui/app_states.dart';
+import '../../../core/ui/layout.dart';
 import '../sections_registry.dart';
 
 class SectionsPage extends ConsumerStatefulWidget {
@@ -22,14 +22,6 @@ class _SectionsPageState extends ConsumerState<SectionsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final ref = this.ref;
-    final activeModule = ref.watch(activeModuleProvider);
-    if (activeModule != ActiveModule.info) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(activeModuleProvider.notifier).setModule(ActiveModule.info);
-      });
-    }
-
     final theme = Theme.of(context);
     final tokens = theme.extension<ThemeTokensExtension>()!.tokens;
 
@@ -56,80 +48,104 @@ class _SectionsPageState extends ConsumerState<SectionsPage> {
                 if (_query.isNotEmpty)
                   IconButton(
                     icon: const Icon(Icons.close),
+                    tooltip: 'action.clear'.tr,
                     onPressed: () => setState(() => _query = ''),
                   ),
               ],
             ),
             SizedBox(height: tokens.space2),
             Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final width = constraints.maxWidth;
-                  final columns = width >= 1100
-                      ? 3
-                      : width >= 700
-                      ? 2
-                      : 1;
+              child: sections.isEmpty
+                  ? AppEmptyState(
+                      title: 'search.noResults'.tr,
+                      icon: Icons.search_off_outlined,
+                    )
+                  : LayoutBuilder(
+                      builder: (context, constraints) {
+                        final columns = responsiveGridColumns(
+                          constraints.maxWidth,
+                        );
 
-                  return GridView.builder(
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: columns,
-                      crossAxisSpacing: tokens.space2,
-                      mainAxisSpacing: tokens.space2,
-                      childAspectRatio: columns == 1 ? 3.2 : 2.6,
-                    ),
-                    itemCount: sections.length,
-                    itemBuilder: (context, index) {
-                      final section = sections[index];
-                      final meta = ref.watch(
-                        sectionMetadataStreamProvider(section.id),
-                      );
-                      final subtitle = meta.when(
-                        data: (v) => 'availability.${v.availability.name}'.tr,
-                        loading: () => 'availability.loading'.tr,
-                        error: (err, st) => 'availability.unavailable'.tr,
-                      );
+                        return GridView.builder(
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: columns,
+                                crossAxisSpacing: tokens.space2,
+                                mainAxisSpacing: tokens.space2,
+                                childAspectRatio:
+                                    responsiveGridChildAspectRatio(columns),
+                              ),
+                          itemCount: sections.length,
+                          itemBuilder: (context, index) {
+                            final section = sections[index];
 
-                      return AppCard(
-                        onTap: () => context.go('/info/${section.pathSegment}'),
-                        child: Row(
-                          children: [
-                            Icon(
-                              section.icon,
-                              color: theme.colorScheme.primary,
-                            ),
-                            SizedBox(width: tokens.space3),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.center,
+                            return AppCard(
+                              onTap: () =>
+                                  context.go('/info/${section.pathSegment}'),
+                              child: Row(
                                 children: [
-                                  Text(
-                                    section.titleKey.tr,
-                                    style: theme.textTheme.titleMedium,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                  Icon(
+                                    section.icon,
+                                    color: theme.colorScheme.primary,
                                   ),
-                                  SizedBox(height: tokens.space1),
-                                  Text(
-                                    subtitle,
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: theme.colorScheme.onSurfaceVariant,
+                                  SizedBox(width: tokens.space3),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          section.titleKey.tr,
+                                          style: theme.textTheme.titleMedium,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        SizedBox(height: tokens.space1),
+                                        // Scoped so one section's update does not
+                                        // rebuild the whole grid.
+                                        Consumer(
+                                          builder: (context, ref, _) {
+                                            final meta = ref.watch(
+                                              sectionMetadataStreamProvider(
+                                                section.id,
+                                              ),
+                                            );
+                                            final subtitle = meta.when(
+                                              skipLoadingOnReload: true,
+                                              data: (v) =>
+                                                  'availability.${v.availability.name}'
+                                                      .tr,
+                                              loading: () =>
+                                                  'availability.loading'.tr,
+                                              error: (err, st) =>
+                                                  'availability.unavailable'.tr,
+                                            );
+                                            return Text(
+                                              subtitle,
+                                              style: theme.textTheme.bodyMedium
+                                                  ?.copyWith(
+                                                    color: theme
+                                                        .colorScheme
+                                                        .onSurfaceVariant,
+                                                  ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            );
+                                          },
+                                        ),
+                                      ],
                                     ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
                                   ),
+                                  const Icon(Icons.chevron_right),
                                 ],
                               ),
-                            ),
-                            const Icon(Icons.chevron_right),
-                          ],
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
             ),
           ],
         ),

@@ -1,25 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../application/sampling/active_module.dart';
-import '../../../application/sampling/sampling_provider.dart';
 import '../../../core/theme/theme_tokens.dart';
 import '../../../core/ui/app_card.dart';
 
-class TestersPage extends ConsumerWidget {
+class TestersPage extends StatelessWidget {
   const TestersPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final activeModule = ref.watch(activeModuleProvider);
-    if (activeModule != ActiveModule.testers) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(activeModuleProvider.notifier).setModule(ActiveModule.testers);
-      });
-    }
-
+  Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<ThemeTokensExtension>()!.tokens;
 
     return Scaffold(
@@ -38,6 +28,18 @@ class TestersPage extends ConsumerWidget {
             icon: Icons.graphic_eq_outlined,
             titleKey: 'testers.noiseChecker',
             subtitleKey: 'testers.noiseCheckerHint',
+          ),
+          _TesterTile(
+            route: '/testers/compass',
+            icon: Icons.explore_outlined,
+            titleKey: 'compass.title',
+            subtitleKey: 'compass.hint',
+          ),
+          _TesterTile(
+            route: '/testers/gps',
+            icon: Icons.satellite_alt_outlined,
+            titleKey: 'gnss.title',
+            subtitleKey: 'gnss.hint',
           ),
           _TesterTile(
             route: '/testers/battery',
@@ -89,9 +91,16 @@ class _TesterTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  titleKey.tr,
-                  style: Theme.of(context).textTheme.titleMedium,
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        titleKey.tr,
+                        style: Theme.of(context).textTheme.titleMedium,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 4),
                 Text(

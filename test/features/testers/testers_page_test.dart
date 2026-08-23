@@ -9,8 +9,11 @@ import 'package:fidel/core/localization/translations.dart';
 
 void main() {
   group('TestersPage', () {
-    testWidgets('renders testers hub with all tool cards',
-        (WidgetTester tester) async {
+    testWidgets('renders testers hub with all tool cards', (
+      WidgetTester tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(800, 2200));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(
         ProviderScope(
           child: GetMaterialApp(
@@ -28,8 +31,10 @@ void main() {
       // Check page title
       expect(find.text('Testers'), findsOneWidget);
 
-      // Check all 5 tester cards are present
+      // Check all 6 tester cards are present
       expect(find.text('Screen tester'), findsOneWidget);
+      expect(find.text('Compass'), findsOneWidget);
+      expect(find.text('GNSS'), findsOneWidget);
       expect(find.text('Noise checker'), findsOneWidget);
       expect(find.text('Battery monitor'), findsOneWidget);
       expect(find.text('Network monitor'), findsOneWidget);
@@ -37,6 +42,8 @@ void main() {
 
       // Check icons are present (outlined variants)
       expect(find.byIcon(Icons.smart_display_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.explore_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.satellite_alt_outlined), findsOneWidget);
       expect(find.byIcon(Icons.graphic_eq_outlined), findsOneWidget);
       expect(find.byIcon(Icons.battery_charging_full_outlined), findsOneWidget);
       expect(find.byIcon(Icons.network_check_outlined), findsOneWidget);
@@ -44,6 +51,8 @@ void main() {
     });
 
     testWidgets('tester cards are tappable', (WidgetTester tester) async {
+      await tester.binding.setSurfaceSize(const Size(800, 2200));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(
         ProviderScope(
           child: GetMaterialApp(
@@ -59,7 +68,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Find first card (Screen Tester) - using AppCard instead of Card
-      expect(find.byType(AppCard), findsNWidgets(5));
+      expect(find.byType(AppCard), findsNWidgets(7));
       expect(find.byType(InkWell), findsWidgets);
     });
   });

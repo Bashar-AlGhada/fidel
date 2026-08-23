@@ -178,7 +178,8 @@ class ExportService {
           s.capability.vendor,
           s.capability.type.toString(),
           r.timestamp.millisecondsSinceEpoch.toString(),
-          jsonEncode(r.values),
+          // jsonEncode cannot serialize NaN/Infinity.
+          jsonEncode([for (final v in r.values) v.isFinite ? v : null]),
           r.accuracy?.name ?? '',
         ]);
       }
@@ -237,7 +238,11 @@ class ExportService {
 
   Object? _sanitizeObject(Object? value) {
     if (value == null) return null;
-    if (value is bool || value is num || value is String) return value;
+    if (value is bool || value is String) return value;
+    if (value is num) {
+      // JSON has no representation for NaN/Infinity.
+      return value.isFinite ? value : null;
+    }
     if (value is List) {
       return value.map(_sanitizeObject).toList(growable: false);
     }
@@ -289,12 +294,28 @@ class ExportService {
   }
 
   String _csvCell(String value) {
+    var cell = value;
+    // Neutralize spreadsheet formula injection. Note: a leading '-' is
+    // included per OWASP guidance, so legitimate negative numbers gain a
+    // leading apostrophe — accepted tradeoff for untrusted payloads.
+    if (cell.isNotEmpty) {
+      final first = cell.codeUnitAt(0);
+      final dangerous =
+          first == 0x3D || // =
+          first == 0x2B || // +
+          first == 0x2D || // -
+          first == 0x40 || // @
+          first == 0x09 || // tab
+          first == 0x0A || // LF
+          first == 0x0D; // CR
+      if (dangerous) cell = "'$cell";
+    }
     final needsQuotes =
-        value.contains(',') ||
-        value.contains('\n') ||
-        value.contains('\r') ||
-        value.contains('"');
-    if (!needsQuotes) return value;
-    return '"${value.replaceAll('"', '""')}"';
+        cell.contains(',') ||
+        cell.contains('\n') ||
+        cell.contains('\r') ||
+        cell.contains('"');
+    if (!needsQuotes) return cell;
+    return '"${cell.replaceAll('"', '""')}"';
   }
 }

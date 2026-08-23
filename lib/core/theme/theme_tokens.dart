@@ -8,33 +8,33 @@ class ThemeTokens {
     required this.radiusSm,
     required this.radiusMd,
     required this.radiusLg,
-    required this.radiusXl,
     required this.strokeWidth,
     required this.motionFastMs,
-    required this.motionNormalMs,
     required this.glassBlurSigma,
     required this.glassTintOpacity,
     required this.glassBorderOpacity,
+    required this.successColor,
+    required this.warningColor,
+    required this.dangerColor,
   });
 
   final double grid;
   final double radiusSm;
   final double radiusMd;
   final double radiusLg;
-  final double radiusXl;
   final double strokeWidth;
   final int motionFastMs;
-  final int motionNormalMs;
   final double glassBlurSigma;
   final double glassTintOpacity;
   final double glassBorderOpacity;
+  final Color successColor;
+  final Color warningColor;
+  final Color dangerColor;
 
   double get space1 => grid;
   double get space2 => grid * 2;
   double get space3 => grid * 3;
   double get space4 => grid * 4;
-  double get space5 => grid * 5;
-  double get space6 => grid * 6;
 
   BorderRadius get cardBorderRadius => BorderRadius.circular(radiusLg);
 
@@ -43,13 +43,14 @@ class ThemeTokens {
     radiusSm: 10,
     radiusMd: 14,
     radiusLg: 18,
-    radiusXl: 24,
     strokeWidth: 1.25,
     motionFastMs: 140,
-    motionNormalMs: 220,
     glassBlurSigma: 14,
     glassTintOpacity: 0.18,
     glassBorderOpacity: 0.28,
+    successColor: Color(0xFF2E7D32),
+    warningColor: Color(0xFFEF6C00),
+    dangerColor: Color(0xFFC62828),
   );
 }
 
@@ -75,7 +76,6 @@ class ThemeTokensExtension extends ThemeExtension<ThemeTokensExtension> {
         radiusSm: lerpDouble(tokens.radiusSm, other.tokens.radiusSm, t)!,
         radiusMd: lerpDouble(tokens.radiusMd, other.tokens.radiusMd, t)!,
         radiusLg: lerpDouble(tokens.radiusLg, other.tokens.radiusLg, t)!,
-        radiusXl: lerpDouble(tokens.radiusXl, other.tokens.radiusXl, t)!,
         strokeWidth: lerpDouble(
           tokens.strokeWidth,
           other.tokens.strokeWidth,
@@ -84,10 +84,6 @@ class ThemeTokensExtension extends ThemeExtension<ThemeTokensExtension> {
         motionFastMs:
             (tokens.motionFastMs +
                     ((other.tokens.motionFastMs - tokens.motionFastMs) * t))
-                .round(),
-        motionNormalMs:
-            (tokens.motionNormalMs +
-                    ((other.tokens.motionNormalMs - tokens.motionNormalMs) * t))
                 .round(),
         glassBlurSigma: lerpDouble(
           tokens.glassBlurSigma,
@@ -102,6 +98,21 @@ class ThemeTokensExtension extends ThemeExtension<ThemeTokensExtension> {
         glassBorderOpacity: lerpDouble(
           tokens.glassBorderOpacity,
           other.tokens.glassBorderOpacity,
+          t,
+        )!,
+        successColor: Color.lerp(
+          tokens.successColor,
+          other.tokens.successColor,
+          t,
+        )!,
+        warningColor: Color.lerp(
+          tokens.warningColor,
+          other.tokens.warningColor,
+          t,
+        )!,
+        dangerColor: Color.lerp(
+          tokens.dangerColor,
+          other.tokens.dangerColor,
           t,
         )!,
       ),

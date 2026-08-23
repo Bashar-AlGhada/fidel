@@ -29,6 +29,43 @@ void main() {
     expect(((sanitized['list'] as List)[1] as Map)['value'], 1);
   });
 
+  test('sanitizeForExport redacts mac-style keys at any depth', () {
+    final input = <String, dynamic>{
+      'radios': [
+        {'mac': 'AA:BB:CC:DD:EE:FF'},
+        [
+          {'meid': '99', 'keep': 'visible'},
+        ],
+      ],
+    };
+
+    final sanitized =
+        ExportService.sanitizeForExport(input) as Map<String, dynamic>;
+    final radios = sanitized['radios'] as List;
+    expect((radios[0] as Map)['mac'], '<redacted>');
+    expect(((radios[1] as List)[0] as Map)['meid'], '<redacted>');
+    expect(((radios[1] as List)[0] as Map)['keep'], 'visible');
+  });
+
+  test('sanitizeForExport turns non-finite doubles into null', () {
+    // JSON has no NaN/Infinity representation; these must not leak.
+    final sanitized =
+        ExportService.sanitizeForExport(<String, dynamic>{
+              'a': double.nan,
+              'b': double.infinity,
+              'c': double.negativeInfinity,
+              'd': [double.nan, 1.5],
+              'e': 42,
+            })
+            as Map<String, dynamic>;
+
+    expect(sanitized['a'], isNull);
+    expect(sanitized['b'], isNull);
+    expect(sanitized['c'], isNull);
+    expect(sanitized['d'], [null, 1.5]);
+    expect(sanitized['e'], 42);
+  });
+
   test('csvEncode quotes cells with commas, quotes, or newlines', () {
     final csv = ExportService.csvEncode([
       ['a', 'b'],

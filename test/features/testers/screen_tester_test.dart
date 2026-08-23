@@ -23,10 +23,12 @@ void main() {
 
       // Should have a ColoredBox with color
       final coloredBox = tester.widget<ColoredBox>(
-        find.descendant(
-          of: find.byType(ScreenTesterPage),
-          matching: find.byType(ColoredBox),
-        ).first,
+        find
+            .descendant(
+              of: find.byType(ScreenTesterPage),
+              matching: find.byType(ColoredBox),
+            )
+            .first,
       );
 
       expect(coloredBox.color, isNotNull);
@@ -45,10 +47,12 @@ void main() {
 
       // Get initial color
       ColoredBox coloredBox = tester.widget<ColoredBox>(
-        find.descendant(
-          of: find.byType(ScreenTesterPage),
-          matching: find.byType(ColoredBox),
-        ).first,
+        find
+            .descendant(
+              of: find.byType(ScreenTesterPage),
+              matching: find.byType(ColoredBox),
+            )
+            .first,
       );
       final initialColor = coloredBox.color;
 
@@ -58,10 +62,12 @@ void main() {
 
       // Get new color
       coloredBox = tester.widget<ColoredBox>(
-        find.descendant(
-          of: find.byType(ScreenTesterPage),
-          matching: find.byType(ColoredBox),
-        ).first,
+        find
+            .descendant(
+              of: find.byType(ScreenTesterPage),
+              matching: find.byType(ColoredBox),
+            )
+            .first,
       );
       final newColor = coloredBox.color;
 
@@ -69,8 +75,9 @@ void main() {
       expect(newColor, isNot(equals(initialColor)));
     });
 
-    testWidgets('has back button in app bar that pops route',
-        (WidgetTester tester) async {
+    testWidgets('has back button in app bar that pops route', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         ProviderScope(
           child: GetMaterialApp(

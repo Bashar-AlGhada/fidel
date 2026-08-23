@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../application/providers/units_providers.dart';
+import '../../../../core/theme/theme_tokens.dart';
 import '../../../../core/ui/smart_data_display.dart';
 import '../../../../domain/entities/info/info_availability.dart';
 import '../../../../domain/entities/info/info_item_entity.dart';
@@ -20,6 +21,7 @@ class InfoSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final tokens = Theme.of(context).extension<ThemeTokensExtension>()!.tokens;
     final items = section.items;
     final prefs = ref
         .watch(unitPreferencesStreamProvider)
@@ -27,9 +29,9 @@ class InfoSection extends ConsumerWidget {
     final formatter = ref.watch(unitsFormatterProvider);
 
     return ListView.separated(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(tokens.space2),
       itemCount: items.isEmpty ? 1 : items.length + 1,
-      separatorBuilder: (context, index) => const SizedBox(height: 12),
+      separatorBuilder: (context, index) => SizedBox(height: tokens.space2),
       itemBuilder: (context, index) {
         if (index == 0) {
           return _AvailabilityCard(availability: section.availability);
@@ -49,26 +51,27 @@ class _AvailabilityCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tokens = theme.extension<ThemeTokensExtension>()!.tokens;
     final (icon, textKey, color) = switch (availability) {
       InfoAvailability.available => (
         Icons.check_circle,
         'availability.available',
-        Colors.green,
+        tokens.successColor,
       ),
       InfoAvailability.unavailable => (
         Icons.warning_amber,
         'availability.unavailable',
-        Colors.orange,
+        tokens.warningColor,
       ),
       InfoAvailability.notSupported => (
         Icons.block,
         'availability.notSupported',
-        Colors.red,
+        tokens.dangerColor,
       ),
       InfoAvailability.restricted => (
         Icons.lock,
         'availability.restricted',
-        Colors.orange,
+        tokens.warningColor,
       ),
     };
 
@@ -158,10 +161,12 @@ class _InfoItemCard extends StatelessWidget {
 
   String? _formatTextValue(String labelKey, String raw) {
     if (raw.trim().isEmpty) return null;
+    // Refresh rates arrive pre-formatted ('60, 90, 120 Hz'); there is no
+    // unit formatter for Hz, so pass the raw string through untouched.
     if (labelKey == 'display.refreshRatesHz') {
       return raw;
     }
-    if (labelKey.contains('Bytes') || labelKey.endsWith('Bytes')) {
+    if (labelKey.endsWith('Bytes')) {
       final bytes = int.tryParse(raw);
       if (bytes == null) return null;
       return formatter.formatBytes(bytes: bytes, base: prefs.dataSizeBase);
@@ -174,7 +179,7 @@ class _InfoItemCard extends StatelessWidget {
     if (labelKey.endsWith('voltageMv')) {
       final mv = double.tryParse(raw);
       if (mv == null) return null;
-      return '${(mv / 1000.0).toStringAsFixed(3)} V';
+      return formatter.formatMillivolts(millivolts: mv);
     }
     if (labelKey.endsWith('currentNowUa') ||
         labelKey.endsWith('currentAverageUa')) {

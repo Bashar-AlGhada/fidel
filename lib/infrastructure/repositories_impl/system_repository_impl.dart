@@ -1,7 +1,7 @@
 import '../../domain/entities/battery_entity.dart';
 import '../../domain/entities/cpu_entity.dart';
-import '../../domain/value_objects/percentage.dart';
 import '../../domain/entities/memory_entity.dart';
+import '../../domain/value_objects/percentage.dart';
 import '../../domain/repositories/system_repository.dart';
 import '../datasources/android_system_datasource.dart';
 import '../mappers/battery_mapper.dart';
@@ -31,21 +31,14 @@ class SystemRepositoryImpl implements SystemRepository {
   @override
   Stream<MemoryEntity> watchMemory() =>
       _datasource.memoryRaw().map(_memoryMapper.fromMap);
-
   @override
   Stream<CpuEntity> watchCpu() async* {
+    // Placeholder while native warms up (~1 s to first tick) and on
+    // platforms without the channel, so tiles never sit in Loading.
     yield CpuEntity(usage: Percentage.fromRatio(0), cores: 1);
 
     await for (final event in _datasource.cpuRaw()) {
-      yield _cpuMapper.fromMap(_cpuEventData(event));
+      yield _cpuMapper.fromMap(event);
     }
-  }
-
-  Map<String, dynamic> _cpuEventData(Map<String, dynamic> event) {
-    final data = event['data'];
-    if (event['ok'] == true && data is Map) {
-      return data.cast<String, dynamic>();
-    }
-    return event;
   }
 }

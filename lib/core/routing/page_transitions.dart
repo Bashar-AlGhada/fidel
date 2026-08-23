@@ -15,18 +15,16 @@ CustomTransitionPage<T> buildFadeScaleTransition<T>({
       const end = 1.0;
       const curve = Curves.easeInOutCubic;
 
-      final tween = Tween(begin: begin, end: end).chain(
-        CurveTween(curve: curve),
-      );
+      final tween = Tween(
+        begin: begin,
+        end: end,
+      ).chain(CurveTween(curve: curve));
       final scaleTween = animation.drive(tween);
       final fadeTween = CurveTween(curve: curve);
 
       return FadeTransition(
         opacity: animation.drive(fadeTween),
-        child: ScaleTransition(
-          scale: scaleTween,
-          child: child,
-        ),
+        child: ScaleTransition(scale: scaleTween, child: child),
       );
     },
   );
@@ -46,17 +44,15 @@ CustomTransitionPage<T> buildSlideUpTransition<T>({
       const end = Offset.zero;
       const curve = Curves.easeOutCubic;
 
-      final tween = Tween(begin: begin, end: end).chain(
-        CurveTween(curve: curve),
-      );
+      final tween = Tween(
+        begin: begin,
+        end: end,
+      ).chain(CurveTween(curve: curve));
       final offsetAnimation = animation.drive(tween);
 
       return SlideTransition(
         position: offsetAnimation,
-        child: FadeTransition(
-          opacity: animation,
-          child: child,
-        ),
+        child: FadeTransition(opacity: animation, child: child),
       );
     },
   );

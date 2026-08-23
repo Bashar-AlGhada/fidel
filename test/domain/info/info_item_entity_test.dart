@@ -25,7 +25,7 @@ void main() {
         value: 'abc',
         sensitivity: InfoSensitivity.sensitive,
       ),
-      throwsA(isA<AssertionError>()),
+      throwsArgumentError,
     );
   });
 }

@@ -13,12 +13,14 @@ void main() {
   runApp(const ProviderScope(child: FidelApp()));
 }
 
+final _appRouter = buildRouter();
+
 class FidelApp extends ConsumerWidget {
   const FidelApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final router = buildRouter();
+    final router = _appRouter;
     final locale = ref.watch(localeProvider);
     final mode = ref.watch(themeModeProvider);
 
@@ -32,14 +34,8 @@ class FidelApp extends ConsumerWidget {
       title: 'Fidel',
       translations: AppTranslations(),
       locale: locale,
-      fallbackLocale: const Locale('en', 'US'),
-      supportedLocales: const [
-        Locale('en', 'US'),
-        Locale('de', 'DE'),
-        Locale('fr', 'FR'),
-        Locale('es', 'ES'),
-        Locale('ar'),
-      ],
+      fallbackLocale: kFallbackLocale,
+      supportedLocales: kSupportedLocales,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,

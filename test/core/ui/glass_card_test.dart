@@ -9,11 +9,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: buildLightTheme(),
-          home: const Scaffold(
-            body: GlassCard(
-              child: Text('Test Content'),
-            ),
-          ),
+          home: const Scaffold(body: GlassCard(child: Text('Test Content'))),
         ),
       );
 
@@ -27,10 +23,7 @@ void main() {
         MaterialApp(
           theme: buildLightTheme(),
           home: const Scaffold(
-            body: GlassCard(
-              padding: testPadding,
-              child: Text('Test'),
-            ),
+            body: GlassCard(padding: testPadding, child: Text('Test')),
           ),
         ),
       );
@@ -53,8 +46,9 @@ void main() {
       expect(padding.padding, testPadding);
     });
 
-    testWidgets('responds to tap when onTap provided',
-        (WidgetTester tester) async {
+    testWidgets('responds to tap when onTap provided', (
+      WidgetTester tester,
+    ) async {
       var tapped = false;
 
       await tester.pumpWidget(
@@ -75,16 +69,13 @@ void main() {
       expect(tapped, isTrue);
     });
 
-    testWidgets('does not respond to tap when onTap is null',
-        (WidgetTester tester) async {
+    testWidgets('does not respond to tap when onTap is null', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           theme: buildLightTheme(),
-          home: const Scaffold(
-            body: GlassCard(
-              child: Text('No Tap'),
-            ),
-          ),
+          home: const Scaffold(body: GlassCard(child: Text('No Tap'))),
         ),
       );
 
@@ -92,8 +83,9 @@ void main() {
       expect(find.byType(InkWell), findsNothing);
     });
 
-    testWidgets('applies semantic label when provided',
-        (WidgetTester tester) async {
+    testWidgets('applies semantic label when provided', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           theme: buildLightTheme(),
@@ -116,16 +108,13 @@ void main() {
       expect(semantics.properties.label, 'Test Card Label');
     });
 
-    testWidgets('uses BackdropFilter for glassmorphism effect',
-        (WidgetTester tester) async {
+    testWidgets('uses BackdropFilter for glassmorphism effect', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           theme: buildLightTheme(),
-          home: const Scaffold(
-            body: GlassCard(
-              child: Text('Glass'),
-            ),
-          ),
+          home: const Scaffold(body: GlassCard(child: Text('Glass'))),
         ),
       );
 

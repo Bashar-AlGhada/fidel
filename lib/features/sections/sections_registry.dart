@@ -12,15 +12,25 @@ class SectionDefinition {
     required this.pathSegment,
     required this.titleKey,
     required this.icon,
-  });
+    Widget Function()? pageBuilder,
+  }) : _pageBuilder = pageBuilder;
 
   final String id;
   final String pathSegment;
   final String titleKey;
   final IconData icon;
+
+  final Widget Function()? _pageBuilder;
+
+  /// Builds the page for this section. Sections without a dedicated page
+  /// fall back to the generic detail view.
+  Widget buildPage() {
+    return _pageBuilder?.call() ??
+        SectionDetailPage(sectionId: id, fallbackTitleKey: titleKey);
+  }
 }
 
-const sectionDefinitions = <SectionDefinition>[
+final sectionDefinitions = <SectionDefinition>[
   SectionDefinition(
     id: 'device-build',
     pathSegment: 'device-build',
@@ -50,12 +60,14 @@ const sectionDefinitions = <SectionDefinition>[
     pathSegment: 'thermal',
     titleKey: 'section.thermal',
     icon: Icons.thermostat,
+    pageBuilder: () => const ThermalSectionPage(),
   ),
   SectionDefinition(
     id: 'cameras',
     pathSegment: 'cameras',
     titleKey: 'section.cameras',
     icon: Icons.photo_camera,
+    pageBuilder: () => const CamerasSectionPage(),
   ),
   SectionDefinition(
     id: 'cellular-sim',
@@ -74,6 +86,7 @@ const sectionDefinitions = <SectionDefinition>[
     pathSegment: 'codecs',
     titleKey: 'section.codecs',
     icon: Icons.video_settings,
+    pageBuilder: () => const CodecsSectionPage(),
   ),
   SectionDefinition(
     id: 'widi-miracast',
@@ -86,15 +99,6 @@ const sectionDefinitions = <SectionDefinition>[
     pathSegment: 'sensors',
     titleKey: 'section.sensors',
     icon: Icons.sensors,
+    pageBuilder: () => const SensorsSectionPage(),
   ),
 ];
-
-Widget buildSectionPage(SectionDefinition def) {
-  return switch (def.id) {
-    'thermal' => const ThermalSectionPage(),
-    'cameras' => const CamerasSectionPage(),
-    'codecs' => const CodecsSectionPage(),
-    'sensors' => const SensorsSectionPage(),
-    _ => SectionDetailPage(sectionId: def.id, fallbackTitleKey: def.titleKey),
-  };
-}

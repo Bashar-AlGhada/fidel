@@ -4,29 +4,31 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../application/providers/export_providers.dart';
 import '../../../application/providers/system_providers.dart';
 import '../../../application/providers/units_providers.dart';
-import '../../../application/sampling/active_module.dart';
-import '../../../application/sampling/sampling_provider.dart';
-import '../../../domain/entities/info/info_item_entity.dart';
+import '../../../core/logging/app_logger.dart';
+import '../../../core/theme/theme_tokens.dart';
+import '../../../core/ui/app_states.dart';
 import '../../../domain/entities/info/info_section_entity.dart';
 import '../../../domain/units/unit_preferences.dart';
 import '../../../domain/units/units_formatter.dart';
-import '../../../features/export/presentation/export_format_sheet.dart';
+import '../../../features/export/presentation/export_flow.dart';
+import 'widgets/section_items.dart';
+import 'widgets/thermal_payload.dart';
 
-class ThermalSectionPage extends ConsumerWidget {
+class ThermalSectionPage extends ConsumerStatefulWidget {
   const ThermalSectionPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final activeModule = ref.watch(activeModuleProvider);
-    if (activeModule != ActiveModule.info) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(activeModuleProvider.notifier).setModule(ActiveModule.info);
-      });
-    }
+  ConsumerState<ThermalSectionPage> createState() => _ThermalSectionPageState();
+}
 
+class _ThermalSectionPageState extends ConsumerState<ThermalSectionPage> {
+  InfoSectionEntity? _parsedSource;
+  List<_TempRow> _rows = const [];
+
+  @override
+  Widget build(BuildContext context) {
     final section = ref.watch(sectionMetadataStreamProvider('thermal'));
     final prefs = ref
         .watch(unitPreferencesStreamProvider)
@@ -39,60 +41,38 @@ class ThermalSectionPage extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.upload_file),
-            onPressed: () => _export(context, ref, section.asData?.value),
+            tooltip: 'action.export'.tr,
+            onPressed: () =>
+                exportSectionFlow(context, ref, section.asData?.value),
           ),
         ],
       ),
       body: section.when(
-        data: (value) =>
-            _ThermalView(section: value, prefs: prefs, formatter: formatter),
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, st) => const Center(child: Text('Unavailable')),
+        skipLoadingOnReload: true,
+        data: (value) => _buildLoaded(value, prefs, formatter),
+        loading: () => const AppLoadingState(),
+        error: (err, st) => AppErrorState(
+          title: 'availability.unavailable'.tr,
+          message: '$err',
+          actionLabel: 'action.retry'.tr,
+          onAction: () =>
+              ref.invalidate(sectionMetadataStreamProvider('thermal')),
+        ),
       ),
     );
   }
 
-  Future<void> _export(
-    BuildContext context,
-    WidgetRef ref,
-    InfoSectionEntity? section,
-  ) async {
-    if (section == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('availability.unavailable'.tr)));
-      return;
+  Widget _buildLoaded(
+    InfoSectionEntity section,
+    UnitPreferences prefs,
+    UnitsFormatter formatter,
+  ) {
+    final tokens = Theme.of(context).extension<ThemeTokensExtension>()!.tokens;
+    if (!identical(_parsedSource, section)) {
+      _parsedSource = section;
+      _rows = _extractTemps(section);
     }
-
-    final format = await showExportFormatSheet(context);
-    if (format == null) return;
-
-    final service = ref.read(exportServiceProvider);
-    final file = await service.exportSection(
-      section,
-      format: format,
-      fileBaseName: 'fidel-${section.id}',
-    );
-    await service.share(file);
-  }
-}
-
-class _ThermalView extends StatelessWidget {
-  const _ThermalView({
-    required this.section,
-    required this.prefs,
-    required this.formatter,
-  });
-
-  final InfoSectionEntity section;
-  final UnitPreferences prefs;
-  final UnitsFormatter formatter;
-
-  @override
-  Widget build(BuildContext context) {
-    final status = _findText(section, 'thermal.thermalStatus');
-    final timestampMs = _findText(section, 'thermal.timestampMs');
-    final temps = _extractTemps(section);
+    final temps = _rows;
 
     final maxTemp = temps
         .map((e) => e.value)
@@ -101,11 +81,11 @@ class _ThermalView extends StatelessWidget {
     final sorted = [...temps]..sort((a, b) => b.value.compareTo(a.value));
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(tokens.space2),
       children: [
         Card(
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(tokens.space2),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -114,24 +94,24 @@ class _ThermalView extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 8),
-                Text(status ?? 'availability.unavailable'.tr),
+                Text(
+                  findItemText(section, 'thermal.thermalStatus') ??
+                      'availability.unavailable'.tr,
+                ),
                 if (maxTemp != null) ...[
                   const SizedBox(height: 8),
                   Text(
                     '${'thermal.maxTemp'.tr}: ${formatter.formatTemperature(celsius: maxTemp, unit: prefs.temperature)}',
                   ),
                 ],
-                if (timestampMs != null) ...[
-                  const SizedBox(height: 8),
-                  Text('${'thermal.timestamp'.tr}: $timestampMs'),
-                ],
+                ..._timestampLine(section),
               ],
             ),
           ),
         ),
-        const SizedBox(height: 12),
-        ...sorted.map((t) {
-          return Card(
+        SizedBox(height: tokens.space2),
+        for (final t in sorted)
+          Card(
             child: ListTile(
               title: Text(t.label),
               trailing: Text(
@@ -142,75 +122,54 @@ class _ThermalView extends StatelessWidget {
               ),
               subtitle: t.type == null ? null : Text(t.type!),
             ),
-          );
-        }),
+          ),
         if (sorted.isEmpty)
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text('thermal.noTemperatures'.tr),
-            ),
+          AppEmptyState(
+            title: 'thermal.noTemperatures'.tr,
+            icon: Icons.thermostat,
           ),
       ],
     );
   }
 
-  String? _findText(InfoSectionEntity section, String labelKey) {
-    for (final item in section.items) {
-      if (item.labelKey != labelKey) continue;
-      return item.value?.text;
-    }
-    return null;
+  List<Widget> _timestampLine(InfoSectionEntity section) {
+    final timestampMs = findItemText(section, 'thermal.timestampMs');
+    final parsed = int.tryParse(timestampMs ?? '');
+    if (parsed == null) return const [];
+    final local = DateTime.fromMillisecondsSinceEpoch(parsed).toLocal();
+    return [
+      const SizedBox(height: 8),
+      Text('${'thermal.timestamp'.tr}: $local'),
+    ];
   }
 
   List<_TempRow> _extractTemps(InfoSectionEntity section) {
-    final item = section.items.cast<InfoItemEntity?>().firstWhere(
-      (it) => it?.labelKey == 'thermal.temperatures',
-      orElse: () => null,
-    );
-    final raw = item?.value?.text;
+    final raw = findItemText(section, 'thermal.temperatures');
     if (raw == null || raw.isEmpty) return const [];
 
     try {
-      final decoded = jsonDecode(raw);
-      final rows = switch (decoded) {
-        List list => list.whereType<Map>().map(
-          (rawMap) => rawMap.cast<String, dynamic>(),
-        ),
-        Map map => map.entries.map((entry) {
-          final value = entry.value;
-          if (value is Map) return value.cast<String, dynamic>();
-          return <String, dynamic>{'name': entry.key, 'valueC': value};
-        }),
-        _ => const Iterable<Map<String, dynamic>>.empty(),
-      };
+      final rows = <_TempRow>[];
+      for (final map in normalizeThermalPayload(jsonDecode(raw))) {
+        final value = temperatureValueOf(map);
+        if (value == null) continue;
 
-      return rows
-          .whereType<Map>()
-          .map((rawMap) {
-            final map = rawMap;
-            final value =
-                map['valueC'] ?? map['value'] ?? map['tempC'] ?? map['celsius'];
-            final numValue = switch (value) {
-              num v => v.toDouble(),
-              String v => double.tryParse(v) ?? double.nan,
-              _ => double.nan,
-            };
-            if (numValue.isNaN || numValue.isInfinite) return null;
-
-            final label =
-                (map['name'] ?? map['label'] ?? map['source'] ?? map['type'])
-                    ?.toString()
-                    .trim();
-            return _TempRow(
-              label: (label == null || label.isEmpty) ? 'Temperature' : label,
-              type: map['type']?.toString(),
-              value: numValue,
-            );
-          })
-          .whereType<_TempRow>()
-          .toList(growable: false);
-    } catch (_) {
+        final label =
+            (map['name'] ?? map['label'] ?? map['source'] ?? map['type'])
+                ?.toString()
+                .trim();
+        rows.add(
+          _TempRow(
+            label: (label == null || label.isEmpty)
+                ? 'thermal.rowFallback'.tr
+                : label,
+            type: map['type']?.toString(),
+            value: value,
+          ),
+        );
+      }
+      return rows;
+    } catch (e, st) {
+      AppLog.warn('Failed to parse thermal payload', error: e, stackTrace: st);
       return const [];
     }
   }

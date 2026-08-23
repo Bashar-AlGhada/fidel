@@ -3,18 +3,18 @@ import 'dart:async';
 import 'package:rxdart/rxdart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../core/config/environment.dart';
+import '../../core/logging/app_logger.dart';
 import '../../domain/units/unit_preferences.dart';
 import '../../domain/units/unit_preferences_repository.dart';
 import '../../domain/units/unit_types.dart';
 
 class UnitPreferencesRepositoryImpl implements UnitPreferencesRepository {
   UnitPreferencesRepositoryImpl() {
-    if (!_isTest) {
+    if (!appIsTest) {
       unawaited(_load());
     }
   }
-
-  static const bool _isTest = bool.fromEnvironment('FLUTTER_TEST');
 
   static const _kTemperature = 'units.temperature';
   static const _kUnitSystem = 'units.unitSystem';
@@ -24,24 +24,41 @@ class UnitPreferencesRepositoryImpl implements UnitPreferencesRepository {
   final BehaviorSubject<UnitPreferences> _subject =
       BehaviorSubject<UnitPreferences>.seeded(UnitPreferences.defaults);
 
+  int _writes = 0;
+  Future<void> _persistQueue = Future.value();
+
   @override
   Stream<UnitPreferences> watch() => _subject.stream;
 
   @override
   Future<void> set(UnitPreferences preferences) async {
-    if (!_isTest) {
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(_kTemperature, preferences.temperature.name);
-        await prefs.setString(_kUnitSystem, preferences.unitSystem.name);
-        await prefs.setString(_kDataSizeBase, preferences.dataSizeBase.name);
-        await prefs.setString(_kRateUnit, preferences.rateUnit.name);
-      } catch (_) {}
+    if (_subject.isClosed) return;
+    _writes++;
+    if (!appIsTest) {
+      // Chain writes so concurrent set() calls persist in call order.
+      _persistQueue = _persistQueue.then((_) => _writePrefs(preferences));
     }
     _subject.add(preferences);
   }
 
+  Future<void> _writePrefs(UnitPreferences preferences) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_kTemperature, preferences.temperature.name);
+      await prefs.setString(_kUnitSystem, preferences.unitSystem.name);
+      await prefs.setString(_kDataSizeBase, preferences.dataSizeBase.name);
+      await prefs.setString(_kRateUnit, preferences.rateUnit.name);
+    } catch (e, st) {
+      AppLog.warn(
+        'Failed to persist unit preferences',
+        error: e,
+        stackTrace: st,
+      );
+    }
+  }
+
   Future<void> _load() async {
+    final writesBeforeLoad = _writes;
     String? temp;
     String? unitSystem;
     String? dataSizeBase;
@@ -53,7 +70,13 @@ class UnitPreferencesRepositoryImpl implements UnitPreferencesRepository {
       unitSystem = prefs.getString(_kUnitSystem);
       dataSizeBase = prefs.getString(_kDataSizeBase);
       rateUnit = prefs.getString(_kRateUnit);
-    } catch (_) {}
+    } catch (e, st) {
+      AppLog.warn('Failed to load unit preferences', error: e, stackTrace: st);
+    }
+
+    if (_writes != writesBeforeLoad) {
+      return;
+    }
 
     final next = UnitPreferences.defaults.copyWith(
       temperature:
@@ -76,8 +99,16 @@ class UnitPreferencesRepositoryImpl implements UnitPreferencesRepository {
   T? _parseEnum<T extends Enum>(List<T> values, String? name) {
     if (name == null || name.isEmpty) return null;
     for (final v in values) {
-      if (v.name == name) return v;
+      if (v.name == name) {
+        return v;
+      }
     }
     return null;
+  }
+
+  @override
+  void dispose() {
+    // Let in-flight persistence finish before closing the stream.
+    unawaited(_persistQueue.whenComplete(_subject.close));
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -24,14 +25,15 @@ class SensorChart extends StatefulWidget {
 }
 
 class _SensorChartState extends State<SensorChart> {
-  int _sequence = 0;
-
-  @override
-  void didUpdateWidget(covariant SensorChart oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!identical(oldWidget.samples, widget.samples)) {
-      _sequence += 1;
-    }
+  Widget _bounded(Widget child) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final height = constraints.maxHeight.isFinite
+            ? math.min(constraints.maxHeight, widget.height)
+            : widget.height;
+        return SizedBox(height: height, child: child);
+      },
+    );
   }
 
   @override
@@ -41,22 +43,14 @@ class _SensorChartState extends State<SensorChart> {
 
     final samples = widget.samples;
     if (samples.isEmpty) {
-      return LayoutBuilder(
-        builder: (context, constraints) {
-          final height = constraints.maxHeight.isFinite
-              ? math.min(constraints.maxHeight, widget.height)
-              : widget.height;
-          return SizedBox(
-            height: height,
-            child: AppEmptyState(
-              title: 'sensor.noData'.tr,
-              message: 'sensor.noDataHint'.tr,
-              icon: Icons.sensors_off_outlined,
-              actionLabel: widget.onRetry == null ? null : 'action.retry'.tr,
-              onAction: widget.onRetry,
-            ),
-          );
-        },
+      return _bounded(
+        AppEmptyState(
+          title: 'sensor.noData'.tr,
+          message: 'sensor.noDataHint'.tr,
+          icon: Icons.sensors_off_outlined,
+          actionLabel: widget.onRetry == null ? null : 'action.retry'.tr,
+          onAction: widget.onRetry,
+        ),
       );
     }
 
@@ -74,39 +68,23 @@ class _SensorChartState extends State<SensorChart> {
     }
 
     if (samples.length < 2 || dims == 0 || validPoints < 2) {
-      return LayoutBuilder(
-        builder: (context, constraints) {
-          final height = constraints.maxHeight.isFinite
-              ? math.min(constraints.maxHeight, widget.height)
-              : widget.height;
-          return SizedBox(
-            height: height,
-            child: AppEmptyState(
-              title: 'sensor.notEnoughSamples'.tr,
-              message: 'sensor.notEnoughSamplesHint'.tr,
-              icon: Icons.show_chart,
-            ),
-          );
-        },
+      return _bounded(
+        AppEmptyState(
+          title: 'sensor.notEnoughSamples'.tr,
+          message: 'sensor.notEnoughSamplesHint'.tr,
+          icon: Icons.show_chart,
+        ),
       );
     }
 
     if (!minY.isFinite || !maxY.isFinite) {
-      return LayoutBuilder(
-        builder: (context, constraints) {
-          final height = constraints.maxHeight.isFinite
-              ? math.min(constraints.maxHeight, widget.height)
-              : widget.height;
-          return SizedBox(
-            height: height,
-            child: AppErrorState(
-              title: 'sensor.invalidData'.tr,
-              message: 'sensor.invalidDataHint'.tr,
-              actionLabel: widget.onRetry == null ? null : 'action.retry'.tr,
-              onAction: widget.onRetry,
-            ),
-          );
-        },
+      return _bounded(
+        AppErrorState(
+          title: 'sensor.invalidData'.tr,
+          message: 'sensor.invalidDataHint'.tr,
+          actionLabel: widget.onRetry == null ? null : 'action.retry'.tr,
+          onAction: widget.onRetry,
+        ),
       );
     }
 
@@ -115,36 +93,27 @@ class _SensorChartState extends State<SensorChart> {
       maxY += 1;
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final height = constraints.maxHeight.isFinite
-            ? math.min(constraints.maxHeight, widget.height)
-            : widget.height;
-        return SizedBox(
-          height: height,
-          child: RepaintBoundary(
-            child: TweenAnimationBuilder<double>(
-              key: ValueKey(_sequence),
-              duration: Duration(milliseconds: tokens.motionFastMs),
-              curve: Curves.easeOutCubic,
-              tween: Tween(begin: 0, end: 1),
-              builder: (context, t, _) {
-                return CustomPaint(
-                  painter: _SensorChartPainter(
-                    samples: samples,
-                    colorScheme: theme.colorScheme,
-                    tokens: tokens,
-                    dims: dims,
-                    minY: minY,
-                    maxY: maxY,
-                    t: t,
-                  ),
-                );
-              },
-            ),
-          ),
-        );
-      },
+    return _bounded(
+      RepaintBoundary(
+        child: TweenAnimationBuilder<double>(
+          duration: Duration(milliseconds: tokens.motionFastMs),
+          curve: Curves.easeOutCubic,
+          tween: Tween(begin: 0, end: 1),
+          builder: (context, t, _) {
+            return CustomPaint(
+              painter: _SensorChartPainter(
+                samples: samples,
+                colorScheme: theme.colorScheme,
+                tokens: tokens,
+                dims: dims,
+                minY: minY,
+                maxY: maxY,
+                t: t,
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 }
@@ -258,7 +227,7 @@ class _SensorChartPainter extends CustomPainter {
         final x = left + (i / (samples.length - 1)) * w;
         final norm = (v - minY) / (maxY - minY);
         final yRaw = top + (1.0 - norm) * h;
-        final y = (top + h) + (yRaw - (top + h)) * t;
+        final y = lerpDouble(top + h, yRaw, t)!;
 
         if (!started) {
           path.moveTo(x, y);
@@ -298,6 +267,7 @@ class _SensorChartPainter extends CustomPainter {
       ellipsis: '...',
     )..layout(maxWidth: maxWidth);
     painter.paint(canvas, Offset(dx, dy));
+    painter.dispose();
   }
 
   String _compact(double value) {

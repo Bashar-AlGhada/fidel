@@ -48,4 +48,14 @@ class AndroidSystemDatasource {
 
   Stream<Map<String, dynamic>> thermalEventsRaw() =>
       AndroidBridge.thermalEvents();
+
+  Stream<Map<String, dynamic>> noiseEventsRaw() => AndroidBridge.noiseEvents();
+
+  Stream<Map<String, dynamic>> networkEventsRaw() =>
+      AndroidBridge.networkEvents();
+
+  Stream<Map<String, dynamic>> gpsEventsRaw() => AndroidBridge.gpsEvents();
+
+  Future<Map<String, dynamic>> setBleScanningResult({required bool enabled}) =>
+      AndroidBridge.setBleScanning(enabled: enabled);
 }

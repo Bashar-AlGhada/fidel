@@ -4,19 +4,22 @@ import '../../domain/units/unit_preferences.dart';
 import '../../domain/units/unit_preferences_repository.dart';
 import '../../domain/units/units_formatter.dart';
 import '../../infrastructure/units/unit_preferences_repository_impl.dart';
-import '../../infrastructure/units/units_formatter_impl.dart';
 
-final unitPreferencesRepositoryProvider = Provider<UnitPreferencesRepository>(
-  (ref) => UnitPreferencesRepositoryImpl(),
-);
+final unitPreferencesRepositoryProvider = Provider<UnitPreferencesRepository>((
+  ref,
+) {
+  final repository = UnitPreferencesRepositoryImpl();
+  ref.onDispose(repository.dispose);
+  return repository;
+});
 
 final unitPreferencesStreamProvider =
     StreamProvider.autoDispose<UnitPreferences>(
-      (ref) => ref.read(unitPreferencesRepositoryProvider).watch(),
+      (ref) => ref.watch(unitPreferencesRepositoryProvider).watch(),
     );
 
 final unitsFormatterProvider = Provider<UnitsFormatter>(
-  (ref) => UnitsFormatterImpl(),
+  (ref) => const UnitsFormatter(),
 );
 
 final setUnitPreferencesProvider =

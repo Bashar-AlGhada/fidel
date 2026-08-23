@@ -3,9 +3,8 @@ import 'package:get/get.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../application/providers/system_providers.dart';
-import '../../../application/sampling/active_module.dart';
-import '../../../application/sampling/sampling_provider.dart';
 import '../../../core/theme/theme_tokens.dart';
+import '../../../core/ui/app_meter.dart';
 import '../../../core/ui/app_states.dart';
 
 class CpuMonitorPage extends ConsumerWidget {
@@ -13,19 +12,13 @@ class CpuMonitorPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final activeModule = ref.watch(activeModuleProvider);
-    if (activeModule != ActiveModule.testers) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(activeModuleProvider.notifier).setModule(ActiveModule.testers);
-      });
-    }
-
     final cpu = ref.watch(cpuStreamProvider);
     final tokens = Theme.of(context).extension<ThemeTokensExtension>()!.tokens;
 
     return Scaffold(
       appBar: AppBar(title: Text('testers.cpuMonitor'.tr)),
       body: cpu.when(
+        skipLoadingOnReload: true,
         data: (v) {
           final percent = v.usage.toWholePercent();
           return ListView(
@@ -33,10 +26,10 @@ class CpuMonitorPage extends ConsumerWidget {
             children: [
               Text(
                 '$percent%',
-                style: Theme.of(context).textTheme.displayMedium,
+                style: Theme.of(context).textTheme.headlineSmall,
               ),
               SizedBox(height: tokens.space3),
-              LinearProgressIndicator(value: v.usage.value),
+              AppMeter(value: v.usage.value),
               SizedBox(height: tokens.space3),
               Text('cpu.cores'.trParams({'value': '${v.cores}'})),
             ],
@@ -45,6 +38,7 @@ class CpuMonitorPage extends ConsumerWidget {
         loading: () => const AppLoadingState(),
         error: (error, stack) => AppErrorState(
           title: 'availability.unavailable'.tr,
+          message: '$error',
           actionLabel: 'action.retry'.tr,
           onAction: () => ref.invalidate(cpuStreamProvider),
         ),

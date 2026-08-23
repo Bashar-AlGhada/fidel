@@ -1,17 +1,18 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../application/providers/export_providers.dart';
 import '../../../application/providers/system_providers.dart';
-import '../../../application/sampling/active_module.dart';
-import '../../../application/sampling/sampling_provider.dart';
 import '../../../core/theme/theme_tokens.dart';
 import '../../../core/ui/app_states.dart';
 import '../../../domain/entities/sensors/sensor_entity.dart';
 import '../../../domain/entities/sensors/sensor_reading_entity.dart';
-import '../../../features/export/presentation/export_format_sheet.dart';
+import '../../../features/export/presentation/export_flow.dart';
 import 'widgets/sensor_chart.dart';
+import 'widgets/sensor_controls_card.dart';
 
 class SensorDetailPage extends ConsumerStatefulWidget {
   const SensorDetailPage({required this.sensorKey, super.key});
@@ -23,36 +24,25 @@ class SensorDetailPage extends ConsumerStatefulWidget {
 }
 
 class _SensorDetailPageState extends ConsumerState<SensorDetailPage> {
-  int _samplingPeriodUs = 200000;
-  int _maxSamples = 128;
-
   @override
   Widget build(BuildContext context) {
-    final activeModule = ref.watch(activeModuleProvider);
-    if (activeModule != ActiveModule.info) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(activeModuleProvider.notifier).setModule(ActiveModule.info);
-      });
-    }
-
     final sensorsAsync = ref.watch(
-      sensorsStreamProvider((
-        samplingPeriodUs: _samplingPeriodUs,
-        maxSamples: _maxSamples,
-      )),
+      sensorsStreamProvider(ref.watch(sensorsConfigProvider)),
     );
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('sensor.detailTitle'.tr),
+        title: Text(_sensorDisplayName(sensorsAsync)),
         actions: [
           IconButton(
             icon: const Icon(Icons.upload_file),
+            tooltip: 'action.export'.tr,
             onPressed: () => _export(context, sensorsAsync.asData?.value),
           ),
         ],
       ),
       body: sensorsAsync.when(
+        skipLoadingOnReload: true,
         data: (sensors) {
           final sensor = sensors.cast<SensorEntity?>().firstWhere(
             (s) => s?.capability.key == widget.sensorKey,
@@ -70,16 +60,26 @@ class _SensorDetailPageState extends ConsumerState<SensorDetailPage> {
         loading: () => const AppLoadingState(),
         error: (err, st) => AppErrorState(
           title: 'availability.unavailable'.tr,
+          message: '$err',
           actionLabel: 'action.retry'.tr,
           onAction: () => ref.invalidate(
-            sensorsStreamProvider((
-              samplingPeriodUs: _samplingPeriodUs,
-              maxSamples: _maxSamples,
-            )),
+            sensorsStreamProvider(ref.watch(sensorsConfigProvider)),
           ),
         ),
       ),
     );
+  }
+
+  /// Shows the concrete sensor in the app bar / task switcher as soon as
+  /// it is known, instead of a generic "Sensor" label.
+  String _sensorDisplayName(AsyncValue<List<SensorEntity>> sensorsAsync) {
+    final sensor = sensorsAsync.asData?.value.cast<SensorEntity?>().firstWhere(
+      (s) => s?.capability.key == widget.sensorKey,
+      orElse: () => null,
+    );
+    final cap = sensor?.capability;
+    if (cap == null) return 'sensor.detailTitle'.tr;
+    return cap.name.isEmpty ? cap.key : cap.name;
   }
 
   Future<void> _export(
@@ -97,19 +97,19 @@ class _SensorDetailPageState extends ConsumerState<SensorDetailPage> {
       return;
     }
 
-    final format = await showExportFormatSheet(context);
-    if (format == null) return;
-
     final service = ref.read(exportServiceProvider);
-    final file = await service.exportSensors(
-      [sensor],
-      format: format,
-      fileBaseName: 'fidel-sensor',
-    );
-    await service.share(file);
+    await runExportFlow(context, (format) async {
+      final file = await service.exportSensors(
+        [sensor],
+        format: format,
+        fileBaseName: 'fidel-sensor',
+      );
+      await service.share(file);
+    });
   }
 
   Widget _buildLoaded(BuildContext context, SensorEntity sensor) {
+    final config = ref.watch(sensorsConfigProvider);
     final tokens = Theme.of(context).extension<ThemeTokensExtension>()!.tokens;
     final cap = sensor.capability;
     final samples = sensor.samples.samples;
@@ -121,64 +121,25 @@ class _SensorDetailPageState extends ConsumerState<SensorDetailPage> {
         Card(
           child: ListTile(
             title: Text(cap.name.isEmpty ? cap.key : cap.name),
-            subtitle: Text('${cap.vendor} • type ${cap.type}'),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'sensors.controls'.tr,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(child: Text('sensors.sampling'.tr)),
-                    DropdownButton<int>(
-                      value: _samplingPeriodUs,
-                      onChanged: (v) => v == null
-                          ? null
-                          : setState(() => _samplingPeriodUs = v),
-                      items: const [
-                        DropdownMenuItem(value: 50000, child: Text('50ms')),
-                        DropdownMenuItem(value: 100000, child: Text('100ms')),
-                        DropdownMenuItem(value: 200000, child: Text('200ms')),
-                        DropdownMenuItem(value: 500000, child: Text('500ms')),
-                        DropdownMenuItem(value: 1000000, child: Text('1s')),
-                      ],
-                    ),
-                  ],
-                ),
-                Row(
-                  children: [
-                    Expanded(child: Text('sensors.window'.tr)),
-                    DropdownButton<int>(
-                      value: _maxSamples,
-                      onChanged: (v) =>
-                          v == null ? null : setState(() => _maxSamples = v),
-                      items: const [
-                        DropdownMenuItem(value: 32, child: Text('32')),
-                        DropdownMenuItem(value: 64, child: Text('64')),
-                        DropdownMenuItem(value: 128, child: Text('128')),
-                        DropdownMenuItem(value: 256, child: Text('256')),
-                        DropdownMenuItem(value: 512, child: Text('512')),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
+            subtitle: Text(
+              '${cap.vendor} • ${'sensor.typeWord'.tr} ${cap.type}',
             ),
           ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: tokens.space2),
+        SensorControlsCard(
+          samplingPeriodUs: config.samplingPeriodUs,
+          maxSamples: config.maxSamples,
+          onSamplingChanged: (v) => ref
+              .read(sensorsConfigProvider.notifier)
+              .update(samplingPeriodUs: v),
+          onMaxSamplesChanged: (v) =>
+              ref.read(sensorsConfigProvider.notifier).update(maxSamples: v),
+        ),
+        SizedBox(height: tokens.space2),
         Card(
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(tokens.space2),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -186,16 +147,27 @@ class _SensorDetailPageState extends ConsumerState<SensorDetailPage> {
                   'sensor.currentValue'.tr,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: tokens.space1),
                 Text(_formatValues(latest) ?? 'availability.unavailable'.tr),
+                if (_climbRateMs(samples, sensor.capability.type)
+                    case final climb?) ...[
+                  SizedBox(height: tokens.space1),
+                  Text(
+                    '${'sensor.climbRate'.tr}: '
+                    '${climb >= 0 ? '+' : ''}${climb.toStringAsFixed(2)} m/s',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: tokens.space2),
         Card(
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(tokens.space2),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -203,25 +175,20 @@ class _SensorDetailPageState extends ConsumerState<SensorDetailPage> {
                   'sensor.chart'.tr,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: tokens.space2),
                 SensorChart(
                   samples: samples,
                   height: 180,
-                  onRetry: () => ref.invalidate(
-                    sensorsStreamProvider((
-                      samplingPeriodUs: _samplingPeriodUs,
-                      maxSamples: _maxSamples,
-                    )),
-                  ),
+                  onRetry: () => ref.invalidate(sensorsStreamProvider(config)),
                 ),
               ],
             ),
           ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: tokens.space2),
         Card(
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(tokens.space2),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -229,7 +196,7 @@ class _SensorDetailPageState extends ConsumerState<SensorDetailPage> {
                   'sensor.capabilities'.tr,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: tokens.space1),
                 Text('${'sensor.maxRange'.tr}: ${cap.maxRange}'),
                 Text('${'sensor.resolution'.tr}: ${cap.resolution}'),
                 Text('${'sensor.power'.tr}: ${cap.powerMilliAmp} mA'),
@@ -242,6 +209,28 @@ class _SensorDetailPageState extends ConsumerState<SensorDetailPage> {
         ),
       ],
     );
+  }
+
+  /// Vertical velocity from the barometric pressure sensor (type 6),
+  /// derived from the last two samples via the barometric formula.
+  double? _climbRateMs(List<SensorReadingEntity> samples, int sensorType) {
+    if (sensorType != 6) return null;
+    if (samples.length < 2) return null;
+    final a = samples[samples.length - 2];
+    final b = samples.last;
+    if (a.values.isEmpty ||
+        b.values.isEmpty ||
+        !a.values.first.isFinite ||
+        !b.values.first.isFinite) {
+      return null;
+    }
+    const p0 = 1013.25;
+    double alt(double hPa) =>
+        44330 * (1 - math.pow(hPa / p0, 0.190294)).toDouble();
+    final dh = alt(b.values.first) - alt(a.values.first);
+    final dtMs = b.timestamp.difference(a.timestamp).inMilliseconds;
+    if (dtMs <= 0) return null;
+    return dh * 1000 / dtMs;
   }
 
   String? _formatValues(SensorReadingEntity? latest) {

@@ -18,7 +18,7 @@ void main() {
     });
 
     expect(cap, isNotNull);
-    expect(cap!.key, '1:Foo:Bar');
+    expect(cap.key, '1:Foo:Bar');
     expect(cap.minDelay.inMicroseconds, 20000);
     expect(cap.maxRange, 10.5);
   });
@@ -33,7 +33,16 @@ void main() {
     });
 
     expect(reading, isNotNull);
-    expect(reading!.timestamp.millisecondsSinceEpoch, 1000);
-    expect(reading.values, [1.0, 2.5, 3.0]);
+    expect(reading.timestamp.millisecondsSinceEpoch, 1000);
+    // Invalid entries keep their positions as NaN so channel/axis indices
+    // stay aligned downstream (the chart skips NaN points).
+    expect(reading.values, [
+      1.0,
+      2.5,
+      double.nan,
+      double.infinity,
+      double.nan,
+      3.0,
+    ]);
   });
 }

@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fidel/core/ui/smart_data_display.dart';
+import 'package:fidel/core/localization/translations.dart';
 import 'package:fidel/core/theme/app_themes.dart';
 
 void main() {
   group('SmartDataDisplay', () {
     testWidgets('renders simple string value', (WidgetTester tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        GetMaterialApp(
           theme: buildLightTheme(),
-          home: const Scaffold(
-            body: SmartDataDisplay(data: 'Simple string'),
-          ),
+          translations: AppTranslations(),
+          fallbackLocale: const Locale('en', 'US'),
+          locale: const Locale('en', 'US'),
+          home: const Scaffold(body: SmartDataDisplay(data: 'Simple string')),
         ),
       );
 
@@ -20,11 +23,12 @@ void main() {
 
     testWidgets('renders null as N/A', (WidgetTester tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        GetMaterialApp(
           theme: buildLightTheme(),
-          home: const Scaffold(
-            body: SmartDataDisplay(data: null),
-          ),
+          translations: AppTranslations(),
+          fallbackLocale: const Locale('en', 'US'),
+          locale: const Locale('en', 'US'),
+          home: const Scaffold(body: SmartDataDisplay(data: null)),
         ),
       );
 
@@ -33,11 +37,12 @@ void main() {
 
     testWidgets('renders number value', (WidgetTester tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        GetMaterialApp(
           theme: buildLightTheme(),
-          home: const Scaffold(
-            body: SmartDataDisplay(data: 42),
-          ),
+          translations: AppTranslations(),
+          fallbackLocale: const Locale('en', 'US'),
+          locale: const Locale('en', 'US'),
+          home: const Scaffold(body: SmartDataDisplay(data: 42)),
         ),
       );
 
@@ -46,26 +51,29 @@ void main() {
 
     testWidgets('renders boolean value', (WidgetTester tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        GetMaterialApp(
           theme: buildLightTheme(),
-          home: const Scaffold(
-            body: SmartDataDisplay(data: true),
-          ),
+          translations: AppTranslations(),
+          fallbackLocale: const Locale('en', 'US'),
+          locale: const Locale('en', 'US'),
+          home: const Scaffold(body: SmartDataDisplay(data: true)),
         ),
       );
 
       expect(find.text('true'), findsOneWidget);
     });
 
-    testWidgets('renders Map with keys and values',
-        (WidgetTester tester) async {
+    testWidgets('renders Map with keys and values', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
-        MaterialApp(
+        GetMaterialApp(
           theme: buildLightTheme(),
+          translations: AppTranslations(),
+          fallbackLocale: const Locale('en', 'US'),
+          locale: const Locale('en', 'US'),
           home: const Scaffold(
-            body: SmartDataDisplay(
-              data: {'key1': 'value1', 'key2': 42},
-            ),
+            body: SmartDataDisplay(data: {'key1': 'value1', 'key2': 42}),
           ),
         ),
       );
@@ -79,26 +87,27 @@ void main() {
 
     testWidgets('renders empty Map as Empty', (WidgetTester tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        GetMaterialApp(
           theme: buildLightTheme(),
-          home: const Scaffold(
-            body: SmartDataDisplay(data: {}),
-          ),
+          translations: AppTranslations(),
+          fallbackLocale: const Locale('en', 'US'),
+          locale: const Locale('en', 'US'),
+          home: const Scaffold(body: SmartDataDisplay(data: {})),
         ),
       );
 
       expect(find.text('Empty'), findsOneWidget);
     });
 
-    testWidgets('renders List items with bullets',
-        (WidgetTester tester) async {
+    testWidgets('renders List items with bullets', (WidgetTester tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        GetMaterialApp(
           theme: buildLightTheme(),
+          translations: AppTranslations(),
+          fallbackLocale: const Locale('en', 'US'),
+          locale: const Locale('en', 'US'),
           home: const Scaffold(
-            body: SmartDataDisplay(
-              data: ['item1', 'item2', 'item3'],
-            ),
+            body: SmartDataDisplay(data: ['item1', 'item2', 'item3']),
           ),
         ),
       );
@@ -111,11 +120,12 @@ void main() {
 
     testWidgets('renders empty List as Empty', (WidgetTester tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        GetMaterialApp(
           theme: buildLightTheme(),
-          home: const Scaffold(
-            body: SmartDataDisplay(data: []),
-          ),
+          translations: AppTranslations(),
+          fallbackLocale: const Locale('en', 'US'),
+          locale: const Locale('en', 'US'),
+          home: const Scaffold(body: SmartDataDisplay(data: [])),
         ),
       );
 
@@ -124,8 +134,11 @@ void main() {
 
     testWidgets('handles nested Map structure', (WidgetTester tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        GetMaterialApp(
           theme: buildLightTheme(),
+          translations: AppTranslations(),
+          fallbackLocale: const Locale('en', 'US'),
+          locale: const Locale('en', 'US'),
           home: const Scaffold(
             body: SmartDataDisplay(
               data: {
@@ -143,8 +156,11 @@ void main() {
 
     testWidgets('handles nested List in Map', (WidgetTester tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        GetMaterialApp(
           theme: buildLightTheme(),
+          translations: AppTranslations(),
+          fallbackLocale: const Locale('en', 'US'),
+          locale: const Locale('en', 'US'),
           home: const Scaffold(
             body: SmartDataDisplay(
               data: {

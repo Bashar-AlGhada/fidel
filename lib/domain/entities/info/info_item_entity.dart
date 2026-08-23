@@ -8,15 +8,25 @@ class InfoItemEntity {
     required this.availability,
     required this.sensitivity,
     required this.value,
-  }) : assert(
-         availability == InfoAvailability.available || value == null,
-         'A non-available item must not have a value.',
-       ),
-       assert(
-         sensitivity == InfoSensitivity.public ||
-             (value != null && value.kind != InfoItemValueKind.text),
-         'Sensitive/prohibited items must not carry raw text values.',
-       );
+  }) {
+    final checkedValue = value;
+    if (availability != InfoAvailability.available && checkedValue != null) {
+      throw ArgumentError.value(
+        checkedValue,
+        'value',
+        'A non-available item must not have a value.',
+      );
+    }
+    if (sensitivity != InfoSensitivity.public &&
+        checkedValue != null &&
+        checkedValue.kind == InfoItemValueKind.text) {
+      throw ArgumentError.value(
+        checkedValue,
+        'value',
+        'Sensitive/prohibited items must not carry raw text values.',
+      );
+    }
+  }
 
   final String labelKey;
   final InfoAvailability availability;
@@ -65,7 +75,13 @@ class InfoItemEntity {
     InfoSensitivity sensitivity = InfoSensitivity.public,
     InfoAvailability availability = InfoAvailability.unavailable,
   }) {
-    assert(availability != InfoAvailability.available);
+    if (availability == InfoAvailability.available) {
+      throw ArgumentError.value(
+        availability,
+        'availability',
+        'Use one of the available factories instead.',
+      );
+    }
     return InfoItemEntity._(
       labelKey: labelKey,
       availability: availability,

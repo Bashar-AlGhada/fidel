@@ -5,12 +5,11 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../application/providers/export_providers.dart';
 import '../../../application/providers/system_providers.dart';
-import '../../../application/sampling/active_module.dart';
-import '../../../application/sampling/sampling_provider.dart';
 import '../../../core/theme/theme_tokens.dart';
 import '../../../core/ui/app_states.dart';
 import '../../../domain/entities/sensors/sensor_entity.dart';
-import '../../../features/export/presentation/export_format_sheet.dart';
+import '../../../features/export/presentation/export_flow.dart';
+import 'widgets/sensor_controls_card.dart';
 
 class SensorsSectionPage extends ConsumerStatefulWidget {
   const SensorsSectionPage({super.key});
@@ -20,25 +19,12 @@ class SensorsSectionPage extends ConsumerStatefulWidget {
 }
 
 class _SensorsSectionPageState extends ConsumerState<SensorsSectionPage> {
-  int _samplingPeriodUs = 200000;
-  int _maxSamples = 128;
   String _query = '';
 
   @override
   Widget build(BuildContext context) {
-    final activeModule = ref.watch(activeModuleProvider);
-    if (activeModule != ActiveModule.info) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(activeModuleProvider.notifier).setModule(ActiveModule.info);
-      });
-    }
-
-    final sensorsAsync = ref.watch(
-      sensorsStreamProvider((
-        samplingPeriodUs: _samplingPeriodUs,
-        maxSamples: _maxSamples,
-      )),
-    );
+    final config = ref.watch(sensorsConfigProvider);
+    final sensorsAsync = ref.watch(sensorsStreamProvider(config));
 
     final tokens = Theme.of(context).extension<ThemeTokensExtension>()!.tokens;
 
@@ -48,22 +34,28 @@ class _SensorsSectionPageState extends ConsumerState<SensorsSectionPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.upload_file),
+            tooltip: 'action.export'.tr,
             onPressed: () =>
                 _exportSensors(context, sensorsAsync.asData?.value),
           ),
         ],
       ),
       body: sensorsAsync.when(
+        skipLoadingOnReload: true,
         data: (sensors) {
           final filtered = _filterSensors(sensors, _query);
           return ListView(
             padding: EdgeInsets.all(tokens.space3),
             children: [
-              _ControlsCard(
-                samplingPeriodUs: _samplingPeriodUs,
-                maxSamples: _maxSamples,
-                onSamplingChanged: (v) => setState(() => _samplingPeriodUs = v),
-                onMaxSamplesChanged: (v) => setState(() => _maxSamples = v),
+              SensorControlsCard(
+                samplingPeriodUs: config.samplingPeriodUs,
+                maxSamples: config.maxSamples,
+                onSamplingChanged: (v) => ref
+                    .read(sensorsConfigProvider.notifier)
+                    .update(samplingPeriodUs: v),
+                onMaxSamplesChanged: (v) => ref
+                    .read(sensorsConfigProvider.notifier)
+                    .update(maxSamples: v),
               ),
               SizedBox(height: tokens.space3),
               SearchBar(
@@ -73,6 +65,7 @@ class _SensorsSectionPageState extends ConsumerState<SensorsSectionPage> {
                   if (_query.isNotEmpty)
                     IconButton(
                       icon: const Icon(Icons.close),
+                      tooltip: 'action.clear'.tr,
                       onPressed: () => setState(() => _query = ''),
                     ),
                 ],
@@ -84,12 +77,7 @@ class _SensorsSectionPageState extends ConsumerState<SensorsSectionPage> {
                   message: 'sensor.noDataHint'.tr,
                   icon: Icons.sensors_off_outlined,
                   actionLabel: 'action.retry'.tr,
-                  onAction: () => ref.invalidate(
-                    sensorsStreamProvider((
-                      samplingPeriodUs: _samplingPeriodUs,
-                      maxSamples: _maxSamples,
-                    )),
-                  ),
+                  onAction: () => ref.invalidate(sensorsStreamProvider(config)),
                 )
               else if (filtered.isEmpty)
                 AppEmptyState(
@@ -114,13 +102,9 @@ class _SensorsSectionPageState extends ConsumerState<SensorsSectionPage> {
         loading: () => const AppLoadingState(),
         error: (err, st) => AppErrorState(
           title: 'availability.unavailable'.tr,
+          message: '$err',
           actionLabel: 'action.retry'.tr,
-          onAction: () => ref.invalidate(
-            sensorsStreamProvider((
-              samplingPeriodUs: _samplingPeriodUs,
-              maxSamples: _maxSamples,
-            )),
-          ),
+          onAction: () => ref.invalidate(sensorsStreamProvider(config)),
         ),
       ),
     );
@@ -145,16 +129,15 @@ class _SensorsSectionPageState extends ConsumerState<SensorsSectionPage> {
       return;
     }
 
-    final format = await showExportFormatSheet(context);
-    if (format == null) return;
-
     final service = ref.read(exportServiceProvider);
-    final file = await service.exportSensors(
-      filtered,
-      format: format,
-      fileBaseName: 'fidel-sensors',
-    );
-    await service.share(file);
+    await runExportFlow(context, (format) async {
+      final file = await service.exportSensors(
+        filtered,
+        format: format,
+        fileBaseName: 'fidel-sensors',
+      );
+      await service.share(file);
+    });
   }
 
   List<SensorEntity> _filterSensors(List<SensorEntity> sensors, String query) {
@@ -168,71 +151,6 @@ class _SensorsSectionPageState extends ConsumerState<SensorsSectionPage> {
           return text.contains(q);
         })
         .toList(growable: false);
-  }
-}
-
-class _ControlsCard extends StatelessWidget {
-  const _ControlsCard({
-    required this.samplingPeriodUs,
-    required this.maxSamples,
-    required this.onSamplingChanged,
-    required this.onMaxSamplesChanged,
-  });
-
-  final int samplingPeriodUs;
-  final int maxSamples;
-  final ValueChanged<int> onSamplingChanged;
-  final ValueChanged<int> onMaxSamplesChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'sensors.controls'.tr,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(child: Text('sensors.sampling'.tr)),
-                DropdownButton<int>(
-                  value: samplingPeriodUs,
-                  onChanged: (v) => v == null ? null : onSamplingChanged(v),
-                  items: const [
-                    DropdownMenuItem(value: 50000, child: Text('50ms')),
-                    DropdownMenuItem(value: 100000, child: Text('100ms')),
-                    DropdownMenuItem(value: 200000, child: Text('200ms')),
-                    DropdownMenuItem(value: 500000, child: Text('500ms')),
-                    DropdownMenuItem(value: 1000000, child: Text('1s')),
-                  ],
-                ),
-              ],
-            ),
-            Row(
-              children: [
-                Expanded(child: Text('sensors.window'.tr)),
-                DropdownButton<int>(
-                  value: maxSamples,
-                  onChanged: (v) => v == null ? null : onMaxSamplesChanged(v),
-                  items: const [
-                    DropdownMenuItem(value: 32, child: Text('32')),
-                    DropdownMenuItem(value: 64, child: Text('64')),
-                    DropdownMenuItem(value: 128, child: Text('128')),
-                    DropdownMenuItem(value: 256, child: Text('256')),
-                    DropdownMenuItem(value: 512, child: Text('512')),
-                  ],
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }
 
@@ -256,7 +174,7 @@ class _SensorTile extends StatelessWidget {
       child: ListTile(
         leading: const Icon(Icons.sensors),
         title: Text(cap.name.isEmpty ? cap.key : cap.name),
-        subtitle: Text('${cap.vendor} • type ${cap.type}'),
+        subtitle: Text('${cap.vendor} • ${'sensor.typeWord'.tr} ${cap.type}'),
         trailing: SizedBox(
           width: 120,
           child: Text(

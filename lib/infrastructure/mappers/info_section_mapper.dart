@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../../core/utils/map_coercion.dart' show coerceDouble, coerceMap;
 import '../../domain/entities/info/info_availability.dart';
 import '../../domain/entities/info/info_item_entity.dart';
 import '../../domain/entities/info/info_section_entity.dart';
@@ -56,8 +57,8 @@ class InfoSectionMapper {
   }
 
   InfoSectionEntity memoryStorage(Map<String, dynamic> data) {
-    final ram = _coerceMap(data['ram']);
-    final heap = _coerceMap(data['heap']);
+    final ram = coerceMap(data['ram']);
+    final heap = coerceMap(data['heap']);
 
     return InfoSectionEntity(
       id: 'memory-storage',
@@ -102,7 +103,7 @@ class InfoSectionMapper {
   }
 
   InfoSectionEntity cellularSim(Map<String, dynamic> data) {
-    final telephony = _coerceMap(data['telephony']);
+    final telephony = coerceMap(data['telephony']);
     return InfoSectionEntity(
       id: 'cellular-sim',
       titleKey: 'section.cellularSim',
@@ -195,8 +196,8 @@ class InfoSectionMapper {
       bool v => v.toString(),
       int v => v.toString(),
       num v => v.toString(),
-      List v => jsonEncode(v),
-      Map v => jsonEncode(v),
+      List v => const JsonEncoder.withIndent('  ').convert(v),
+      Map v => const JsonEncoder.withIndent('  ').convert(v),
       _ => value.toString(),
     };
   }
@@ -349,11 +350,8 @@ class InfoSectionMapper {
   }
 
   double? _asDouble(Object? value) {
-    return switch (value) {
-      num v => v.toDouble(),
-      String v => double.tryParse(v),
-      _ => null,
-    };
+    final parsed = coerceDouble(value, fallback: double.nan);
+    return parsed.isNaN ? null : parsed;
   }
 
   String _toCompactNumber(double value) {
@@ -363,10 +361,5 @@ class InfoSectionMapper {
               .replaceFirst(RegExp(r'0+$'), '')
               .replaceFirst(RegExp(r'\.$'), '')
         : fixed;
-  }
-
-  Map<String, dynamic> _coerceMap(Object? value) {
-    if (value is Map) return value.cast<String, dynamic>();
-    return const {};
   }
 }

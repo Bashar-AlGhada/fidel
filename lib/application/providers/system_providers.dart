@@ -7,12 +7,6 @@ import '../../domain/entities/memory_entity.dart';
 import '../../domain/entities/sensors/sensor_entity.dart';
 import '../../domain/repositories/sections_repository.dart';
 import '../../domain/repositories/system_repository.dart';
-import '../../domain/usecases/get_section_metadata.dart';
-import '../../domain/usecases/stream_battery.dart';
-import '../../domain/usecases/stream_cpu.dart';
-import '../../domain/usecases/stream_memory.dart';
-import '../../domain/usecases/watch_section_metadata.dart';
-import '../../domain/usecases/watch_sensors.dart';
 import '../../infrastructure/cache/local_cache_store.dart';
 import '../../infrastructure/datasources/android_system_datasource.dart';
 import '../../infrastructure/mappers/battery_mapper.dart';
@@ -34,62 +28,86 @@ final localCacheStoreProvider = Provider<LocalCacheStore>(
 final systemRepositoryProvider = Provider<SystemRepository>((ref) {
   return SystemRepositoryImpl(
     datasource: ref.read(androidSystemDatasourceProvider),
-    batteryMapper: BatteryMapper(),
+    batteryMapper: const BatteryMapper(),
     memoryMapper: MemoryMapper(),
     cpuMapper: CpuMapper(),
   );
 });
 
 final sectionsRepositoryProvider = Provider<SectionsRepository>((ref) {
-  return SectionsRepositoryImpl(
+  final repository = SectionsRepositoryImpl(
     datasource: ref.read(androidSystemDatasourceProvider),
     infoSectionMapper: InfoSectionMapper(),
     sensorEventMapper: SensorEventMapper(),
     cacheStore: ref.read(localCacheStoreProvider),
   );
+  ref.onDispose(repository.dispose);
+  return repository;
 });
 
-final streamBatteryProvider = Provider<StreamBattery>(
-  (ref) => StreamBattery(ref.read(systemRepositoryProvider)),
-);
-final streamMemoryProvider = Provider<StreamMemory>(
-  (ref) => StreamMemory(ref.read(systemRepositoryProvider)),
-);
-final streamCpuProvider = Provider<StreamCpu>(
-  (ref) => StreamCpu(ref.read(systemRepositoryProvider)),
+/// Keep-alive: 1 Hz platform feeds are cheap and seeding them app-long
+/// removes spinner flashes on every dashboard↔monitor round-trip.
+final batteryStreamProvider = StreamProvider<BatteryEntity>(
+  (ref) => ref.watch(systemRepositoryProvider).watchBattery(),
 );
 
-final getSectionMetadataProvider = Provider<GetSectionMetadata>(
-  (ref) => GetSectionMetadata(ref.read(sectionsRepositoryProvider)),
-);
-final watchSectionMetadataProvider = Provider<WatchSectionMetadata>(
-  (ref) => WatchSectionMetadata(ref.read(sectionsRepositoryProvider)),
-);
-final watchSensorsProvider = Provider<WatchSensors>(
-  (ref) => WatchSensors(ref.read(sectionsRepositoryProvider)),
+final memoryStreamProvider = StreamProvider<MemoryEntity>(
+  (ref) => ref.watch(systemRepositoryProvider).watchMemory(),
 );
 
-final batteryStreamProvider = StreamProvider.autoDispose<BatteryEntity>(
-  (ref) => ref.read(streamBatteryProvider)(),
+final cpuStreamProvider = StreamProvider<CpuEntity>(
+  (ref) => ref.watch(systemRepositoryProvider).watchCpu(),
 );
-final memoryStreamProvider = StreamProvider.autoDispose<MemoryEntity>(
-  (ref) => ref.read(streamMemoryProvider)(),
-);
-final cpuStreamProvider = StreamProvider.autoDispose<CpuEntity>(
-  (ref) => ref.read(streamCpuProvider)(),
-);
+
+final getSectionMetadataProvider =
+    Provider<Future<InfoSectionEntity> Function(String, {bool forceRefresh})>((
+      ref,
+    ) {
+      final repository = ref.read(sectionsRepositoryProvider);
+      return (sectionId, {forceRefresh = false}) =>
+          repository.getSectionMetadata(sectionId, forceRefresh: forceRefresh);
+    });
 
 final sectionMetadataStreamProvider = StreamProvider.autoDispose
     .family<InfoSectionEntity, String>(
-      (ref, sectionId) => ref.read(watchSectionMetadataProvider)(sectionId),
+      (ref, sectionId) =>
+          ref.watch(sectionsRepositoryProvider).watchSectionMetadata(sectionId),
     );
 
 typedef SensorsStreamConfig = ({int samplingPeriodUs, int maxSamples});
 
+/// Single source of truth for sensor sampling. The list page, detail page
+/// and compass all consume this, so a change on one surface survives
+/// navigation instead of being silently reverted by sibling defaults.
+class SensorsConfigController extends Notifier<SensorsStreamConfig> {
+  @override
+  SensorsStreamConfig build() => defaultSensorStreamConfig;
+
+  void update({int? samplingPeriodUs, int? maxSamples}) {
+    state = (
+      samplingPeriodUs: samplingPeriodUs ?? state.samplingPeriodUs,
+      maxSamples: maxSamples ?? state.maxSamples,
+    );
+  }
+}
+
+final sensorsConfigProvider =
+    NotifierProvider<SensorsConfigController, SensorsStreamConfig>(
+      SensorsConfigController.new,
+    );
+
+/// Defaults shared by every sensors-stream consumer (compass, detail).
+const SensorsStreamConfig defaultSensorStreamConfig = (
+  samplingPeriodUs: 200000,
+  maxSamples: 128,
+);
+
 final sensorsStreamProvider = StreamProvider.autoDispose
     .family<List<SensorEntity>, SensorsStreamConfig>(
-      (ref, config) => ref.read(watchSensorsProvider)(
-        maxSamples: config.maxSamples,
-        samplingPeriodUs: config.samplingPeriodUs,
-      ),
+      (ref, config) => ref
+          .watch(sectionsRepositoryProvider)
+          .watchSensors(
+            maxSamples: config.maxSamples,
+            samplingPeriodUs: config.samplingPeriodUs,
+          ),
     );

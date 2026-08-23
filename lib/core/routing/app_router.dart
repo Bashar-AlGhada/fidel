@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/dashboard/presentation/dashboard_page.dart';
@@ -7,42 +9,36 @@ import '../../features/sections/presentation/sections_page.dart';
 import '../../features/sections/sections_registry.dart';
 import '../../features/settings/presentation/settings_page.dart';
 import '../../features/testers/presentation/battery_monitor_page.dart';
+import '../../features/testers/presentation/compass_page.dart';
+import '../../features/testers/presentation/gps_page.dart';
 import '../../features/testers/presentation/cpu_monitor_page.dart';
 import '../../features/testers/presentation/network_monitor_page.dart';
 import '../../features/testers/presentation/noise_checker_page.dart';
 import '../../features/testers/presentation/screen_tester_page.dart';
 import '../../features/testers/presentation/testers_page.dart';
+import '../ui/app_states.dart';
 import 'app_nav_shell.dart';
+import 'nav_tabs.dart';
 import 'page_transitions.dart';
 
 GoRouter buildRouter() {
   return GoRouter(
+    errorBuilder: (context, state) => Scaffold(
+      appBar: AppBar(title: Text('error.pageTitle'.tr)),
+      body: AppErrorState(
+        title: 'error.pageNotFound'.tr,
+        message: state.uri.toString(),
+        actionLabel: 'action.retry'.tr,
+        onAction: () => context.go('/'),
+      ),
+    ),
     routes: [
       ShellRoute(
         builder: (context, state, child) {
-          final location = state.uri.toString();
-          final index = switch (location) {
-            '/' => 0,
-            String() when location.startsWith('/info') => 1,
-            String() when location.startsWith('/testers') => 2,
-            '/settings' => 3,
-            _ => 0,
-          };
-
+          final index = tabIndexForLocation(state.uri.toString());
           return AppNavShell(
             currentIndex: index,
-            onTap: (i) {
-              switch (i) {
-                case 0:
-                  context.go('/');
-                case 1:
-                  context.go('/info');
-                case 2:
-                  context.go('/testers');
-                case 3:
-                  context.go('/settings');
-              }
-            },
+            onTap: (i) => context.go(navTabs[i].path),
             child: child,
           );
         },
@@ -76,7 +72,7 @@ GoRouter buildRouter() {
                 else
                   GoRoute(
                     path: def.pathSegment,
-                    builder: (c, s) => buildSectionPage(def),
+                    builder: (c, s) => def.buildPage(),
                   ),
             ],
           ),
@@ -98,6 +94,22 @@ GoRouter buildRouter() {
                   context: c,
                   state: s,
                   child: const NoiseCheckerPage(),
+                ),
+              ),
+              GoRoute(
+                path: 'compass',
+                pageBuilder: (c, s) => buildFadeScaleTransition(
+                  context: c,
+                  state: s,
+                  child: const CompassPage(),
+                ),
+              ),
+              GoRoute(
+                path: 'gps',
+                pageBuilder: (c, s) => buildFadeScaleTransition(
+                  context: c,
+                  state: s,
+                  child: const GpsPage(),
                 ),
               ),
               GoRoute(

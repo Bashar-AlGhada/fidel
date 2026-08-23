@@ -13,4 +13,6 @@ abstract class SectionsRepository {
     int maxSamples = 128,
     int samplingPeriodUs = 200000,
   });
+
+  void dispose();
 }

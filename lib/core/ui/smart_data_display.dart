@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class SmartDataDisplay extends StatelessWidget {
-  const SmartDataDisplay({required this.data, this.depth = 0, super.key});
+  const SmartDataDisplay({required this.data, super.key});
 
   final Object? data;
-  final int depth;
 
   @override
   Widget build(BuildContext context) {
     final value = data;
     if (value == null) {
       return Text(
-        'N/A',
+        'common.na'.tr,
         style: Theme.of(
           context,
         ).textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic),
@@ -20,7 +20,7 @@ class SmartDataDisplay extends StatelessWidget {
 
     if (value is Map) {
       final entries = value.entries.toList(growable: false);
-      if (entries.isEmpty) return const Text('Empty');
+      if (entries.isEmpty) return Text('common.empty'.tr);
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: entries
@@ -42,10 +42,7 @@ class SmartDataDisplay extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       flex: 5,
-                      child: SmartDataDisplay(
-                        data: entry.value,
-                        depth: depth + 1,
-                      ),
+                      child: SmartDataDisplay(data: entry.value),
                     ),
                   ],
                 ),
@@ -56,7 +53,7 @@ class SmartDataDisplay extends StatelessWidget {
     }
 
     if (value is List) {
-      if (value.isEmpty) return const Text('Empty');
+      if (value.isEmpty) return Text('common.empty'.tr);
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: value
@@ -70,11 +67,13 @@ class SmartDataDisplay extends StatelessWidget {
                   child: ExpansionTile(
                     tilePadding: EdgeInsets.zero,
                     childrenPadding: EdgeInsets.zero,
-                    title: Text('Item ${entry.key + 1}'),
+                    title: Text(
+                      'common.item'.trParams({'n': '${entry.key + 1}'}),
+                    ),
                     children: [
                       Align(
                         alignment: Alignment.centerLeft,
-                        child: SmartDataDisplay(data: item, depth: depth + 1),
+                        child: SmartDataDisplay(data: item),
                       ),
                     ],
                   ),

@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
+import '../core/utils/map_coercion.dart' show coerceMap;
+
 class AndroidBridge {
   AndroidBridge._();
 
@@ -27,6 +29,15 @@ class AndroidBridge {
   );
   static const EventChannel _thermalEvents = EventChannel(
     'com.atlas.fidel/thermal_events',
+  );
+  static const EventChannel _noiseEvents = EventChannel(
+    'com.atlas.fidel/noise_events',
+  );
+  static const EventChannel _networkEvents = EventChannel(
+    'com.atlas.fidel/network_events',
+  );
+  static const EventChannel _gnssEvents = EventChannel(
+    'com.atlas.fidel/gnss_events',
   );
 
   static Map<String, dynamic> _ok(Map<String, dynamic> data) => {
@@ -57,43 +68,55 @@ class AndroidBridge {
     };
   }
 
-  static Map<String, dynamic> _coerceMap(Object? value) {
-    if (value is Map) return value.cast<String, dynamic>();
-    return const {};
+  /// One cached broadcast stream per channel+arguments.
+  ///
+  /// [EventChannel.receiveBroadcastStream] registers a single binary
+  /// handler per channel name, so creating fresh streams per call lets an
+  /// overlapping cancel from consumer A unregister the handler that
+  /// consumer B is listening on — silently killing the feed. Sharing one
+  /// cached broadcast stream makes every listener a plain Dart-level
+  /// subscriber whose cancel cannot touch the native side while others
+  /// remain attached.
+  static final Map<String, Stream<Map<String, dynamic>>> _streamCache = {};
+
+  static Stream<Map<String, dynamic>> _cachedEventStream(
+    EventChannel channel, {
+    Map<String, Object>? arguments,
+  }) {
+    final key = '${channel.name}|$arguments';
+    return _streamCache.putIfAbsent(key, () {
+      return _guardedStream(
+        channel.receiveBroadcastStream(arguments),
+        toMap: coerceMap,
+      );
+    });
   }
 
-  static Map<String, dynamic> _coerceEventData(Object? value) {
-    final map = _coerceMap(value);
-    if (map['ok'] == true) {
-      final data = map['data'];
-      if (data is Map) return data.cast<String, dynamic>();
-    }
-    return map;
-  }
-
-  static Stream<Map<String, dynamic>> _resultStream(EventChannel channel) {
-    if (!_isAndroid) return const Stream.empty();
-
-    return channel.receiveBroadcastStream().transform(
+  /// Normalizes a broadcast stream into `Map` data events and real stream
+  /// errors. Errors are surfaced via the error channel so consumers can
+  /// never mistake a failure for a valid payload.
+  static Stream<Map<String, dynamic>> _guardedStream(
+    Stream<Object?> raw, {
+    required Map<String, dynamic> Function(Object? event) toMap,
+  }) {
+    return raw.transform(
       StreamTransformer<Object?, Map<String, dynamic>>.fromHandlers(
-        handleData: (data, sink) => sink.add(_coerceEventData(data)),
-        handleError: (error, stack, sink) {
-          final payload = switch (error) {
-            PlatformException e => _err(
-              code: e.code,
-              message: e.message,
-              details: e.details,
-            ),
-            MissingPluginException e => _err(
-              code: 'missing_plugin',
-              message: e.message ?? 'Missing platform implementation.',
-            ),
-            _ => _err(code: 'stream_error', message: error.toString()),
-          };
-          sink.add(payload);
-        },
+        handleData: (data, sink) => sink.add(toMap(data)),
+        handleError: (error, stack, sink) =>
+            sink.addError(_asPlatformException(error)),
       ),
     );
+  }
+
+  static PlatformException _asPlatformException(Object error) {
+    return switch (error) {
+      PlatformException e => e,
+      MissingPluginException e => PlatformException(
+        code: 'missing_plugin',
+        message: e.message ?? 'Missing platform implementation.',
+      ),
+      _ => PlatformException(code: 'stream_error', message: error.toString()),
+    };
   }
 
   static Future<Map<String, dynamic>> _invokeResultMap(
@@ -110,7 +133,7 @@ class AndroidBridge {
 
     try {
       final result = await _methods.invokeMethod<Object?>(method, arguments);
-      return _ok(_coerceMap(result));
+      return _ok(coerceMap(result));
     } on MissingPluginException catch (e) {
       return _err(
         code: 'missing_plugin',
@@ -122,15 +145,6 @@ class AndroidBridge {
       return _err(code: 'unexpected', message: e.toString());
     }
   }
-
-  static Future<Map<String, dynamic>> getDeviceInfo() async {
-    final result = await getDeviceInfoResult();
-    if (result['ok'] != true) return const {};
-    return _coerceMap(result['data']);
-  }
-
-  static Future<Map<String, dynamic>> getDeviceInfoResult() =>
-      _invokeResultMap('getDeviceInfo');
 
   static Future<Map<String, dynamic>> deviceSnapshot() =>
       _invokeResultMap('getDeviceSnapshot');
@@ -162,6 +176,9 @@ class AndroidBridge {
   static Future<Map<String, dynamic>> widiMiracastSnapshot() =>
       _invokeResultMap('getWidiMiracastSnapshot');
 
+  static Future<Map<String, dynamic>> setBleScanning({required bool enabled}) =>
+      _invokeResultMap('setBleScanning', arguments: {'enabled': enabled});
+
   static Future<Map<String, dynamic>> exportInputsSnapshot({
     bool includeLastKnownSensors = false,
     int maxSensorSamples = 0,
@@ -176,68 +193,48 @@ class AndroidBridge {
   static Stream<Map<String, dynamic>> sensorEvents({int? samplingPeriodUs}) {
     if (!_isAndroid) return const Stream.empty();
 
-    return _sensorEvents
-        .receiveBroadcastStream(
-          samplingPeriodUs != null && samplingPeriodUs > 0
-              ? <String, Object>{'samplingPeriodUs': samplingPeriodUs}
-              : null,
-        )
-        .transform(
-          StreamTransformer<Object?, Map<String, dynamic>>.fromHandlers(
-            handleData: (data, sink) => sink.add(_ok(_coerceMap(data))),
-            handleError: (error, stack, sink) {
-              final payload = switch (error) {
-                PlatformException e => _err(
-                  code: e.code,
-                  message: e.message,
-                  details: e.details,
-                ),
-                MissingPluginException e => _err(
-                  code: 'missing_plugin',
-                  message: e.message ?? 'Missing platform implementation.',
-                ),
-                _ => _err(code: 'stream_error', message: error.toString()),
-              };
-              sink.add(payload);
-            },
-          ),
-        );
+    final hasPeriod = samplingPeriodUs != null && samplingPeriodUs > 0;
+    return _cachedEventStream(
+      _sensorEvents,
+      arguments: hasPeriod
+          ? <String, Object>{'samplingPeriodUs': samplingPeriodUs}
+          : null,
+    );
   }
 
   static Stream<Map<String, dynamic>> thermalEvents() {
     if (!_isAndroid) return const Stream.empty();
 
-    return _thermalEvents.receiveBroadcastStream().transform(
-      StreamTransformer<Object?, Map<String, dynamic>>.fromHandlers(
-        handleData: (data, sink) => sink.add(_ok(_coerceMap(data))),
-        handleError: (error, stack, sink) {
-          final payload = switch (error) {
-            PlatformException e => _err(
-              code: e.code,
-              message: e.message,
-              details: e.details,
-            ),
-            MissingPluginException e => _err(
-              code: 'missing_plugin',
-              message: e.message ?? 'Missing platform implementation.',
-            ),
-            _ => _err(code: 'stream_error', message: error.toString()),
-          };
-          sink.add(payload);
-        },
-      ),
-    );
+    return _cachedEventStream(_thermalEvents);
   }
 
   static Stream<Map<String, dynamic>> cpuStream() {
-    return _resultStream(_cpuEvents);
+    if (!_isAndroid) return const Stream.empty();
+    return _cachedEventStream(_cpuEvents);
   }
 
   static Stream<Map<String, dynamic>> memoryStream() {
-    return _resultStream(_memoryEvents);
+    if (!_isAndroid) return const Stream.empty();
+    return _cachedEventStream(_memoryEvents);
   }
 
   static Stream<Map<String, dynamic>> batteryStream() {
-    return _resultStream(_batteryEvents);
+    if (!_isAndroid) return const Stream.empty();
+    return _cachedEventStream(_batteryEvents);
+  }
+
+  static Stream<Map<String, dynamic>> noiseEvents() {
+    if (!_isAndroid) return const Stream.empty();
+    return _cachedEventStream(_noiseEvents);
+  }
+
+  static Stream<Map<String, dynamic>> networkEvents() {
+    if (!_isAndroid) return const Stream.empty();
+    return _cachedEventStream(_networkEvents);
+  }
+
+  static Stream<Map<String, dynamic>> gpsEvents() {
+    if (!_isAndroid) return const Stream.empty();
+    return _cachedEventStream(_gnssEvents);
   }
 }

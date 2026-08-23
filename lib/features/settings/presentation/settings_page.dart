@@ -3,13 +3,12 @@ import 'package:get/get.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../application/providers/units_providers.dart';
-import '../../../application/sampling/active_module.dart';
-import '../../../application/sampling/sampling_provider.dart';
 import '../../../core/localization/locale_provider.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../core/theme/theme_tokens.dart';
 import '../../../core/ui/app_card.dart';
 import '../../../core/ui/app_section.dart';
+import '../../../core/ui/app_states.dart';
 import '../../../domain/units/unit_preferences.dart';
 import '../../../domain/units/unit_types.dart';
 
@@ -18,15 +17,6 @@ class SettingsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final activeModule = ref.watch(activeModuleProvider);
-    if (activeModule != ActiveModule.settings) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref
-            .read(activeModuleProvider.notifier)
-            .setModule(ActiveModule.settings);
-      });
-    }
-
     final themeMode = ref.watch(themeModeProvider);
     final locale = ref.watch(localeProvider);
     final unitPrefs = ref.watch(unitPreferencesStreamProvider);
@@ -48,18 +38,18 @@ class SettingsPage extends ConsumerWidget {
                   if (v == null) return;
                   ref.read(themeModeProvider.notifier).setTheme(v);
                 },
-                items: const [
+                items: [
                   DropdownMenuItem(
                     value: AppThemeMode.light,
-                    child: Text('Light'),
+                    child: Text('settings.themeLight'.tr),
                   ),
                   DropdownMenuItem(
                     value: AppThemeMode.dark,
-                    child: Text('Dark'),
+                    child: Text('settings.themeDark'.tr),
                   ),
                   DropdownMenuItem(
                     value: AppThemeMode.amoled,
-                    child: Text('AMOLED'),
+                    child: Text('settings.themeAmoled'.tr),
                   ),
                 ],
               ),
@@ -103,6 +93,7 @@ class SettingsPage extends ConsumerWidget {
           AppSection(
             title: 'settings.units'.tr,
             child: unitPrefs.when(
+              skipLoadingOnReload: true,
               data: (prefs) => AppCard(
                 child: _UnitsSettings(
                   prefs: prefs,
@@ -114,7 +105,12 @@ class SettingsPage extends ConsumerWidget {
                 padding: EdgeInsets.symmetric(vertical: 12),
                 child: LinearProgressIndicator(),
               ),
-              error: (err, st) => Text('availability.unavailable'.tr),
+              error: (err, st) => AppErrorState(
+                title: 'availability.unavailable'.tr,
+                message: '$err',
+                actionLabel: 'action.retry'.tr,
+                onAction: () => ref.invalidate(unitPreferencesStreamProvider),
+              ),
             ),
           ),
         ],
@@ -139,8 +135,9 @@ class _UnitsSettings extends StatelessWidget {
             Expanded(child: Text('units.temperature'.tr)),
             DropdownButton<TemperatureUnit>(
               value: prefs.temperature,
-              onChanged: (v) =>
-                  v == null ? null : onChanged(prefs.copyWith(temperature: v)),
+              onChanged: (v) {
+                if (v != null) onChanged(prefs.copyWith(temperature: v));
+              },
               items: [
                 DropdownMenuItem(
                   value: TemperatureUnit.celsius,
@@ -159,8 +156,9 @@ class _UnitsSettings extends StatelessWidget {
             Expanded(child: Text('units.dataSize'.tr)),
             DropdownButton<DataSizeBase>(
               value: prefs.dataSizeBase,
-              onChanged: (v) =>
-                  v == null ? null : onChanged(prefs.copyWith(dataSizeBase: v)),
+              onChanged: (v) {
+                if (v != null) onChanged(prefs.copyWith(dataSizeBase: v));
+              },
               items: [
                 DropdownMenuItem(
                   value: DataSizeBase.base2,
@@ -179,8 +177,9 @@ class _UnitsSettings extends StatelessWidget {
             Expanded(child: Text('units.rate'.tr)),
             DropdownButton<RateUnit>(
               value: prefs.rateUnit,
-              onChanged: (v) =>
-                  v == null ? null : onChanged(prefs.copyWith(rateUnit: v)),
+              onChanged: (v) {
+                if (v != null) onChanged(prefs.copyWith(rateUnit: v));
+              },
               items: [
                 DropdownMenuItem(
                   value: RateUnit.bytesPerSecond,
@@ -199,8 +198,9 @@ class _UnitsSettings extends StatelessWidget {
             Expanded(child: Text('units.system'.tr)),
             DropdownButton<UnitSystem>(
               value: prefs.unitSystem,
-              onChanged: (v) =>
-                  v == null ? null : onChanged(prefs.copyWith(unitSystem: v)),
+              onChanged: (v) {
+                if (v != null) onChanged(prefs.copyWith(unitSystem: v));
+              },
               items: [
                 DropdownMenuItem(
                   value: UnitSystem.metric,

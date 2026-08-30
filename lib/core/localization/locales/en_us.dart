@@ -81,6 +81,87 @@ const Map<String, String> enUs = <String, String>{
   'sensor.noDataHint': 'Waiting for sensor readings.',
   'sensor.invalidData': 'Invalid sensor data',
   'sensor.invalidDataHint': 'Received unreadable values. Try again.',
+  'sensor.now': 'now',
+
+  'sensor.axis.x': 'X',
+  'sensor.axis.y': 'Y',
+  'sensor.axis.z': 'Z',
+  'sensor.axis.azimuth': 'Azimuth',
+  'sensor.axis.pitch': 'Pitch',
+  'sensor.axis.roll': 'Roll',
+  'sensor.axis.value': 'Value',
+
+  'sensor.type.accelerometer': 'Accelerometer',
+  'sensor.type.magneticField': 'Magnetometer',
+  'sensor.type.orientation': 'Orientation (deprecated)',
+  'sensor.type.gyroscope': 'Gyroscope',
+  'sensor.type.light': 'Ambient light',
+  'sensor.type.pressure': 'Barometer',
+  'sensor.type.temperature': 'Temperature (deprecated)',
+  'sensor.type.proximity': 'Proximity',
+  'sensor.type.gravity': 'Gravity',
+  'sensor.type.linearAcceleration': 'Linear acceleration',
+  'sensor.type.rotationVector': 'Rotation vector',
+  'sensor.type.relativeHumidity': 'Relative humidity',
+  'sensor.type.ambientTemperature': 'Ambient temperature',
+  'sensor.type.magneticFieldUncalibrated': 'Magnetometer (uncalibrated)',
+  'sensor.type.gameRotationVector': 'Game rotation vector',
+  'sensor.type.gyroscopeUncalibrated': 'Gyroscope (uncalibrated)',
+  'sensor.type.significantMotion': 'Significant motion',
+  'sensor.type.stepDetector': 'Step detector',
+  'sensor.type.stepCounter': 'Step counter',
+  'sensor.type.geomagneticRotationVector': 'Geomagnetic rotation vector',
+  'sensor.type.heartRate': 'Heart rate',
+  'sensor.type.tiltDetector': 'Tilt detector',
+  'sensor.type.wristTiltGesture': 'Wrist tilt gesture',
+  'sensor.type.accelerometerUncalibrated': 'Accelerometer (uncalibrated)',
+  'sensor.type.unknown': 'Unknown sensor',
+
+  'sensor.typeDesc.accelerometer':
+      'Measures acceleration forces including gravity, in three axes.',
+  'sensor.typeDesc.magneticField':
+      'Measures the ambient magnetic field strength around the device.',
+  'sensor.typeDesc.orientation':
+      'Legacy sensor reporting device orientation angles.',
+  'sensor.typeDesc.gyroscope':
+      'Measures rotational speed around each device axis.',
+  'sensor.typeDesc.light': 'Measures the ambient light level around the screen.',
+  'sensor.typeDesc.pressure':
+      'Measures atmospheric air pressure for altitude estimation.',
+  'sensor.typeDesc.temperature':
+      'Legacy sensor reporting the device core temperature.',
+  'sensor.typeDesc.proximity': 'Detects how close an object is to the screen.',
+  'sensor.typeDesc.gravity': 'Measures the gravitational pull on each axis.',
+  'sensor.typeDesc.linearAcceleration':
+      'Measures acceleration excluding gravity, such as vehicle movement.',
+  'sensor.typeDesc.rotationVector':
+      'Reports device orientation as a rotation vector.',
+  'sensor.typeDesc.relativeHumidity':
+      'Measures the relative moisture of the surrounding air.',
+  'sensor.typeDesc.ambientTemperature':
+      'Measures the surrounding air temperature.',
+  'sensor.typeDesc.magneticFieldUncalibrated':
+      'Raw magnetic field readings without calibration correction.',
+  'sensor.typeDesc.gameRotationVector':
+      'Orientation rotation vector without magnetic north reference.',
+  'sensor.typeDesc.gyroscopeUncalibrated':
+      'Raw rotational speeds without drift compensation.',
+  'sensor.typeDesc.significantMotion':
+      'Detects meaningful movement such as walking or driving.',
+  'sensor.typeDesc.stepDetector': 'Signals each individual step taken.',
+  'sensor.typeDesc.stepCounter':
+      'Counts total steps taken since the last reboot.',
+  'sensor.typeDesc.geomagneticRotationVector':
+      'Orientation derived from magnetometer and accelerometer readings.',
+  'sensor.typeDesc.heartRate':
+      'Measures the current pulse rate in beats per minute.',
+  'sensor.typeDesc.tiltDetector':
+      'Detects when the device is tilted from a flat rest position.',
+  'sensor.typeDesc.wristTiltGesture':
+      'Detects wrist tilting gestures on wearables.',
+  'sensor.typeDesc.accelerometerUncalibrated':
+      'Raw acceleration readings without bias compensation.',
+  'sensor.typeDesc.unknown': 'An unrecognized sensor type reported by this device.',
 
   'section.deviceBuild': 'Device & Build',
   'section.display': 'Display',
@@ -300,4 +381,127 @@ const Map<String, String> enUs = <String, String>{
   'testers.permissionLimited': 'Microphone permission limited.',
   'testers.permissionProvisional':
       'Microphone permission provisionally granted.',
+
+  // Battery monitor (live vitals + trends)
+  'battery.chargeRemaining': 'Charge remaining',
+  'battery.currentEstimated': 'Estimated current',
+  'battery.energyCounterMwh': 'Energy counter',
+  'battery.health.cold': 'Cold',
+  'battery.health.dead': 'Dead',
+  'battery.health.good': 'Good',
+  'battery.health.over_voltage': 'Over voltage',
+  'battery.health.overheat': 'Overheating',
+  'battery.health.unspecified_failure': 'Failure',
+  'battery.percentHistory': 'Level trend',
+  'battery.powerHistory': 'Power trend',
+  'battery.status.unknown': 'Unknown',
+
+  // Cameras / codecs sections
+  'camera.empty': 'No cameras found',
+  'camera.logical': 'Logical',
+  'camera.orientation': 'Orientation',
+  'camera.parentLogical': 'Part of logical camera',
+  'camera.physical': 'Physical lens',
+  'camera.resolution': 'Resolution',
+  'camera.sensorSize': 'Sensor size',
+  'codec.empty': 'No codecs found',
+
+  // CPU monitor
+  'cpu.core': 'Core {index}',
+  'cpu.history': 'Usage history',
+  'cpu.perCore': 'Per-core usage',
+  'cpu.totalUsage': 'Total usage',
+
+  // Dashboard
+  'dashboard.deviceTagline': 'Device diagnostics at a glance',
+
+  // Network radios
+  'network.bleAdapterOff': 'Bluetooth is turned off.',
+  'network.blePermissionDenied': 'Bluetooth permission denied.',
+  'network.bleUnsupported': 'Bluetooth LE is not supported on this device.',
+  'network.scanFailed': 'The scan could not be started.',
+  'network.scanningZero': 'Scanning… 0 devices found yet.',
+
+  // Screen tester
+  'screenTester.autoCycle': 'Auto-cycle',
+  'screenTester.clearTrails': 'Clear trails',
+  'screenTester.deadPixelIntro':
+      'Full-screen color fills will follow. Look closely for pixels that stay lit or stay dark.',
+  'screenTester.deadPixelIntroTitle': 'Dead pixel check',
+  'screenTester.deadPixelProgress': 'Color {index} of {total}',
+  'screenTester.deadPixelStart': 'Start check',
+  'screenTester.gradientSweep': 'Gradient sweep',
+  'screenTester.grayRamp': 'Grayscale ramp',
+  'screenTester.maxTouches': 'Max {count}',
+  'screenTester.mode.deadPixel': 'Dead pixel',
+  'screenTester.mode.gradient': 'Gradient',
+  'screenTester.mode.solid': 'Solid',
+  'screenTester.mode.touch': 'Touch',
+  'screenTester.touches': '{count} touching',
+  'screenTester.touchHint': 'Use multiple fingers to test multi-touch.',
+
+  // Settings
+  'settings.appearance': 'Appearance',
+  'settings.languageSystem': 'System default',
+
+  // Speed test
+  'speedTest.avgLatency': 'Avg {value} ms',
+  'speedTest.best': 'Best',
+  'speedTest.cancel': 'Cancel',
+  'speedTest.disclaimer':
+      'Results depend on your connection and the public test servers used.',
+  'speedTest.download': 'Download',
+  'speedTest.error.failed': 'Test failed: {detail}',
+  'speedTest.error.offline': 'No network connection ({detail})',
+  'speedTest.error.timeout': 'The test timed out.',
+  'speedTest.intro': 'Measure your connection',
+  'speedTest.introHint':
+      'Runs latency, download and upload checks against public servers.',
+  'speedTest.jitter': 'Jitter',
+  'speedTest.latency': 'Latency',
+  'speedTest.peak': 'Peak {value} Mbps',
+  'speedTest.phase.download': 'Downloading…',
+  'speedTest.phase.ping': 'Measuring latency…',
+  'speedTest.phase.upload': 'Uploading…',
+  'speedTest.rerun': 'Run again',
+  'speedTest.resultsTitle': 'Results',
+  'speedTest.start': 'Start test',
+  'speedTest.upload': 'Upload',
+
+  // Testers hub
+  'testers.speedTest': 'Speed test',
+  'testers.speedTestHint': 'Measure latency, download and upload throughput',
+  'testers.torchTester': 'Flashlight test',
+  'testers.torchTesterHint': 'Toggle the LED torch and try strobe patterns',
+  'testers.vibrationTester': 'Vibration test',
+  'testers.vibrationTesterHint': 'Try short, long and patterned vibrations',
+
+  // Thermal section
+  'thermal.zonesTitle': 'Temperature zones',
+
+  // Torch tester
+  'torch.frequency': '{value} Hz',
+  'torch.hardwareMissingTitle': 'No flash hardware',
+  'torch.reason.camera_error': 'The camera reported an error.',
+  'torch.reason.failed': 'The torch could not be toggled.',
+  'torch.reason.torch_unavailable': 'This device has no controllable flash.',
+  'torch.startStrobe': 'Start strobe',
+  'torch.stopStrobe': 'Stop strobe',
+  'torch.strobe': 'Strobe',
+  'torch.toggleOff': 'Off',
+  'torch.toggleOn': 'On',
+
+  // Vibration tester
+  'vibration.amplitudeHint':
+      'Strength control requires Android 8.0+ with a supported motor.',
+  'vibration.ok': 'Buzzed',
+  'vibration.reason.failed': 'Vibration failed.',
+  'vibration.reason.invalid_args': 'Invalid pattern.',
+  'vibration.reason.permission_denied': 'Vibration permission denied.',
+  'vibration.reason.unsupported': 'No vibration motor on this device.',
+  'vibration.patternAmplitude': 'Amplitude wave',
+  'vibration.patternDouble': 'Double tap',
+  'vibration.patternLong': 'Long',
+  'vibration.patternRamp': 'Pulse ramp',
+  'vibration.patternShort': 'Short',  'vibration.tapHint': 'Pick a pattern to feel it.',
 };

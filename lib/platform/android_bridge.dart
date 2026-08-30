@@ -179,6 +179,20 @@ class AndroidBridge {
   static Future<Map<String, dynamic>> setBleScanning({required bool enabled}) =>
       _invokeResultMap('setBleScanning', arguments: {'enabled': enabled});
 
+  /// Native contract: args {patternMs, amplitudes?} → payload
+  /// {ok: bool, reason: String?}.
+  static Future<Map<String, dynamic>> testVibration({
+    required List<int> patternMs,
+    List<int>? amplitudes,
+  }) => _invokeResultMap(
+    'testVibration',
+    arguments: {'patternMs': patternMs, 'amplitudes': amplitudes},
+  );
+
+  /// Native contract: args {enabled} → payload {ok: bool, reason: String?}.
+  static Future<Map<String, dynamic>> setTorch({required bool enabled}) =>
+      _invokeResultMap('setTorch', arguments: {'enabled': enabled});
+
   static Future<Map<String, dynamic>> exportInputsSnapshot({
     bool includeLastKnownSensors = false,
     int maxSensorSamples = 0,

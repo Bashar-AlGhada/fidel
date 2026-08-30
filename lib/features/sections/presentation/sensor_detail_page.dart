@@ -7,9 +7,13 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../application/providers/export_providers.dart';
 import '../../../application/providers/system_providers.dart';
 import '../../../core/theme/theme_tokens.dart';
+import '../../../core/ui/app_card.dart';
 import '../../../core/ui/app_states.dart';
+import '../../../domain/entities/sensors/sensor_capability_entity.dart';
 import '../../../domain/entities/sensors/sensor_entity.dart';
 import '../../../domain/entities/sensors/sensor_reading_entity.dart';
+import '../../../domain/sensors/sensor_catalog.dart';
+import '../../../domain/units/measurement_formatter.dart';
 import '../../../features/export/presentation/export_flow.dart';
 import 'widgets/sensor_chart.dart';
 import 'widgets/sensor_controls_card.dart';
@@ -79,6 +83,9 @@ class _SensorDetailPageState extends ConsumerState<SensorDetailPage> {
     );
     final cap = sensor?.capability;
     if (cap == null) return 'sensor.detailTitle'.tr;
+    if (SensorCatalog.isKnown(cap.type)) {
+      return SensorCatalog.lookup(cap.type).nameKey.tr;
+    }
     return cap.name.isEmpty ? cap.key : cap.name;
   }
 
@@ -110,19 +117,42 @@ class _SensorDetailPageState extends ConsumerState<SensorDetailPage> {
 
   Widget _buildLoaded(BuildContext context, SensorEntity sensor) {
     final config = ref.watch(sensorsConfigProvider);
-    final tokens = Theme.of(context).extension<ThemeTokensExtension>()!.tokens;
+    final theme = Theme.of(context);
+    final tokens = theme.extension<ThemeTokensExtension>()!.tokens;
     final cap = sensor.capability;
+    final entry = SensorCatalog.lookup(cap.type);
+    final known = SensorCatalog.isKnown(cap.type);
     final samples = sensor.samples.samples;
     final latest = samples.isEmpty ? null : samples.last;
+
+    final idParts = <String>[
+      'ID: ${cap.name.isEmpty ? cap.key : cap.name}',
+      if (cap.vendor.isNotEmpty) cap.vendor,
+      if (!known) '${'sensor.typeWord'.tr} ${cap.type}',
+    ];
 
     return ListView(
       padding: EdgeInsets.all(tokens.space3),
       children: [
-        Card(
+        AppCard(
           child: ListTile(
-            title: Text(cap.name.isEmpty ? cap.key : cap.name),
-            subtitle: Text(
-              '${cap.vendor} • ${'sensor.typeWord'.tr} ${cap.type}',
+            title: Text(
+              known
+                  ? entry.nameKey.tr
+                  : (cap.name.isEmpty ? cap.key : cap.name),
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(idParts.join(' • ')),
+                SizedBox(height: tokens.space1),
+                Text(
+                  entry.descriptionKey.tr,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -137,7 +167,7 @@ class _SensorDetailPageState extends ConsumerState<SensorDetailPage> {
               ref.read(sensorsConfigProvider.notifier).update(maxSamples: v),
         ),
         SizedBox(height: tokens.space2),
-        Card(
+        AppCard(
           child: Padding(
             padding: EdgeInsets.all(tokens.space2),
             child: Column(
@@ -145,18 +175,33 @@ class _SensorDetailPageState extends ConsumerState<SensorDetailPage> {
               children: [
                 Text(
                   'sensor.currentValue'.tr,
-                  style: Theme.of(context).textTheme.titleMedium,
+                  style: theme.textTheme.titleMedium,
                 ),
                 SizedBox(height: tokens.space1),
-                Text(_formatValues(latest) ?? 'availability.unavailable'.tr),
+                Text(
+                  latest == null || latest.values.isEmpty
+                      ? 'availability.unavailable'.tr
+                      : formatList(latest.values),
+                ),
+                if (latest != null &&
+                    entry.axes.isNotEmpty &&
+                    entry.axes.length == latest.values.length) ...[
+                  SizedBox(height: tokens.space1),
+                  Text(
+                    entry.axes.map((key) => key.tr).join(' / '),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
                 if (_climbRateMs(samples, sensor.capability.type)
                     case final climb?) ...[
                   SizedBox(height: tokens.space1),
                   Text(
                     '${'sensor.climbRate'.tr}: '
                     '${climb >= 0 ? '+' : ''}${climb.toStringAsFixed(2)} m/s',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -165,7 +210,7 @@ class _SensorDetailPageState extends ConsumerState<SensorDetailPage> {
           ),
         ),
         SizedBox(height: tokens.space2),
-        Card(
+        AppCard(
           child: Padding(
             padding: EdgeInsets.all(tokens.space2),
             child: Column(
@@ -186,7 +231,7 @@ class _SensorDetailPageState extends ConsumerState<SensorDetailPage> {
           ),
         ),
         SizedBox(height: tokens.space2),
-        Card(
+        AppCard(
           child: Padding(
             padding: EdgeInsets.all(tokens.space2),
             child: Column(
@@ -197,11 +242,20 @@ class _SensorDetailPageState extends ConsumerState<SensorDetailPage> {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 SizedBox(height: tokens.space1),
-                Text('${'sensor.maxRange'.tr}: ${cap.maxRange}'),
-                Text('${'sensor.resolution'.tr}: ${cap.resolution}'),
-                Text('${'sensor.power'.tr}: ${cap.powerMilliAmp} mA'),
                 Text(
-                  '${'sensor.minDelay'.tr}: ${cap.minDelay.inMicroseconds} µs',
+                  '${'sensor.maxRange'.tr}: '
+                  '${formatMeasurement(cap.maxRange, unit: entry.unit)}',
+                ),
+                Text(
+                  '${'sensor.resolution'.tr}: '
+                  '${formatMeasurement(cap.resolution)}',
+                ),
+                Text(
+                  '${'sensor.power'.tr}: '
+                  '${formatMeasurement(cap.powerMilliAmp, unit: 'mA')}',
+                ),
+                Text(
+                  '${'sensor.minDelay'.tr}: ${_formatMinDelay(cap)}',
                 ),
               ],
             ),
@@ -209,6 +263,12 @@ class _SensorDetailPageState extends ConsumerState<SensorDetailPage> {
         ),
       ],
     );
+  }
+
+  String _formatMinDelay(SensorCapabilityEntity cap) {
+    final us = cap.minDelay.inMicroseconds;
+    if (us >= 1000) return formatMeasurement(us / 1000, unit: 'ms');
+    return formatMeasurement(us, unit: 'µs');
   }
 
   /// Vertical velocity from the barometric pressure sensor (type 6),
@@ -231,11 +291,5 @@ class _SensorDetailPageState extends ConsumerState<SensorDetailPage> {
     final dtMs = b.timestamp.difference(a.timestamp).inMilliseconds;
     if (dtMs <= 0) return null;
     return dh * 1000 / dtMs;
-  }
-
-  String? _formatValues(SensorReadingEntity? latest) {
-    if (latest == null) return null;
-    if (latest.values.isEmpty) return null;
-    return latest.values.map((v) => v.toStringAsFixed(3)).join(', ');
   }
 }

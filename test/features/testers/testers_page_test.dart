@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
-import 'package:fidel/features/testers/presentation/testers_page.dart';
+import 'package:fidel/core/localization/translations.dart';
 import 'package:fidel/core/theme/app_themes.dart';
 import 'package:fidel/core/ui/app_card.dart';
-import 'package:fidel/core/localization/translations.dart';
+import 'package:fidel/features/testers/presentation/testers_page.dart';
 
 void main() {
   group('TestersPage', () {
@@ -15,23 +14,19 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(800, 2200));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(
-        ProviderScope(
-          child: GetMaterialApp(
-            translations: AppTranslations(),
-            locale: const Locale('en', 'US'),
-            theme: buildLightTheme(),
-            home: const TestersPage(),
-          ),
+        GetMaterialApp(
+          translations: AppTranslations(),
+          locale: const Locale('en', 'US'),
+          theme: buildLightTheme(),
+          home: const TestersPage(),
         ),
       );
-
-      // Wait for async operations to complete
       await tester.pumpAndSettle();
 
-      // Check page title
+      // Page title.
       expect(find.text('Testers'), findsOneWidget);
 
-      // Check all 6 tester cards are present
+      // Every tester card is present.
       expect(find.text('Screen tester'), findsOneWidget);
       expect(find.text('Compass'), findsOneWidget);
       expect(find.text('GNSS'), findsOneWidget);
@@ -39,8 +34,11 @@ void main() {
       expect(find.text('Battery monitor'), findsOneWidget);
       expect(find.text('Network monitor'), findsOneWidget);
       expect(find.text('CPU monitor'), findsOneWidget);
+      expect(find.text('Vibration test'), findsOneWidget);
+      expect(find.text('Flashlight test'), findsOneWidget);
+      expect(find.text('Speed test'), findsOneWidget);
 
-      // Check icons are present (outlined variants)
+      // Outlined icons per card.
       expect(find.byIcon(Icons.smart_display_outlined), findsOneWidget);
       expect(find.byIcon(Icons.explore_outlined), findsOneWidget);
       expect(find.byIcon(Icons.satellite_alt_outlined), findsOneWidget);
@@ -48,27 +46,26 @@ void main() {
       expect(find.byIcon(Icons.battery_charging_full_outlined), findsOneWidget);
       expect(find.byIcon(Icons.network_check_outlined), findsOneWidget);
       expect(find.byIcon(Icons.developer_board_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.vibration_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.flashlight_on_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.speed_outlined), findsOneWidget);
     });
 
     testWidgets('tester cards are tappable', (WidgetTester tester) async {
       await tester.binding.setSurfaceSize(const Size(800, 2200));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(
-        ProviderScope(
-          child: GetMaterialApp(
-            translations: AppTranslations(),
-            locale: const Locale('en', 'US'),
-            theme: buildLightTheme(),
-            home: const TestersPage(),
-          ),
+        GetMaterialApp(
+          translations: AppTranslations(),
+          locale: const Locale('en', 'US'),
+          theme: buildLightTheme(),
+          home: const TestersPage(),
         ),
       );
-
-      // Wait for async operations to complete
       await tester.pumpAndSettle();
 
-      // Find first card (Screen Tester) - using AppCard instead of Card
-      expect(find.byType(AppCard), findsNWidgets(7));
+      // One AppCard per tester tile.
+      expect(find.byType(AppCard), findsNWidgets(10));
       expect(find.byType(InkWell), findsWidgets);
     });
   });

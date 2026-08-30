@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../theme/theme_tokens.dart';
 import '../ui/glass_bottom_navigation.dart';
 import '../ui/glass_card.dart';
+import '../ui/layout.dart';
 import 'nav_tabs.dart';
-
-const double _mediumBreakpoint = 700;
-const double _wideBreakpoint = 1000;
 
 class AppNavShell extends StatelessWidget {
   const AppNavShell({
@@ -25,19 +24,20 @@ class AppNavShell extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final maxWidth = constraints.maxWidth;
-        // Wide implies medium; one check covers both tiers.
-        if (maxWidth >= _mediumBreakpoint) {
-          final isWide = maxWidth >= _wideBreakpoint;
+        final tokens = context.tokens;
+        // Wide implies compact; one check covers both tiers.
+        if (maxWidth >= kCompactBreakpoint) {
+          final isWide = maxWidth >= kExtendedBreakpoint;
           return Scaffold(
             body: Row(
               children: [
                 SafeArea(
                   child: Padding(
-                    padding: const EdgeInsets.all(12),
+                    padding: EdgeInsets.all(tokens.grid * 1.5),
                     child: GlassCard(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 8,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: tokens.grid * 0.75,
+                        vertical: tokens.space1,
                       ),
                       child: NavigationRail(
                         extended: isWide,

@@ -6,8 +6,11 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../application/providers/export_providers.dart';
 import '../../../application/providers/system_providers.dart';
 import '../../../core/theme/theme_tokens.dart';
+import '../../../core/ui/app_card.dart';
 import '../../../core/ui/app_states.dart';
 import '../../../domain/entities/sensors/sensor_entity.dart';
+import '../../../domain/sensors/sensor_catalog.dart';
+import '../../../domain/units/measurement_formatter.dart';
 import '../../../features/export/presentation/export_flow.dart';
 import 'widgets/sensor_controls_card.dart';
 
@@ -146,8 +149,10 @@ class _SensorsSectionPageState extends ConsumerState<SensorsSectionPage> {
     return sensors
         .where((s) {
           final cap = s.capability;
-          final text = '${cap.name} ${cap.vendor} ${cap.type} ${cap.key}'
-              .toLowerCase();
+          final friendly = SensorCatalog.lookup(cap.type).nameKey.tr;
+          final text =
+              '$friendly ${cap.name} ${cap.vendor} ${cap.type} ${cap.key}'
+                  .toLowerCase();
           return text.contains(q);
         })
         .toList(growable: false);
@@ -163,18 +168,28 @@ class _SensorTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cap = sensor.capability;
+    final entry = SensorCatalog.lookup(cap.type);
+    final known = SensorCatalog.isKnown(cap.type);
     final latest = sensor.samples.samples.isEmpty
         ? null
         : sensor.samples.samples.last;
     final latestText = latest == null || latest.values.isEmpty
         ? 'availability.unavailable'.tr
-        : latest.values.map((v) => v.toStringAsFixed(2)).join(', ');
+        : formatList(latest.values);
 
-    return Card(
+    final parts = <String>[
+      'ID: ${cap.name.isEmpty ? cap.key : cap.name}',
+      if (cap.vendor.isNotEmpty) cap.vendor,
+      if (!known) '${'sensor.typeWord'.tr} ${cap.type}',
+    ];
+
+    return AppCard(
       child: ListTile(
-        leading: const Icon(Icons.sensors),
-        title: Text(cap.name.isEmpty ? cap.key : cap.name),
-        subtitle: Text('${cap.vendor} • ${'sensor.typeWord'.tr} ${cap.type}'),
+        leading: Icon(entry.icon),
+        title: Text(
+          known ? entry.nameKey.tr : (cap.name.isEmpty ? cap.key : cap.name),
+        ),
+        subtitle: Text(parts.join(' • ')),
         trailing: SizedBox(
           width: 120,
           child: Text(

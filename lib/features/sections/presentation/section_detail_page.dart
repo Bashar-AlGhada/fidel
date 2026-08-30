@@ -3,7 +3,8 @@ import 'package:get/get.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../application/providers/system_providers.dart';
-import '../../../core/ui/app_states.dart';
+import '../../../core/ui/app_page_scaffold.dart';
+import '../../../core/ui/async_value_view.dart';
 import '../../../features/export/presentation/export_flow.dart';
 import 'widgets/info_section.dart';
 
@@ -21,9 +22,13 @@ class SectionDetailPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final section = ref.watch(sectionMetadataStreamProvider(sectionId));
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(fallbackTitleKey.tr),
+    // Wrapping the scaffold lets the indicator observe the page's inner
+    // scrollable while keeping AppPageScaffold's padding contract.
+    return RefreshIndicator(
+      onRefresh: () =>
+          ref.read(getSectionMetadataProvider)(sectionId, forceRefresh: true),
+      child: AppPageScaffold(
+        title: fallbackTitleKey.tr,
         actions: [
           IconButton(
             icon: const Icon(Icons.upload_file),
@@ -32,26 +37,17 @@ class SectionDetailPage extends ConsumerWidget {
                 exportSectionFlow(context, ref, section.asData?.value),
           ),
         ],
-      ),
-      body: section.when(
-        skipLoadingOnReload: true,
-        data: (value) {
-          return RefreshIndicator(
-            onRefresh: () => ref.read(getSectionMetadataProvider)(
-              sectionId,
-              forceRefresh: true,
-            ),
-            child: InfoSection(section: value),
-          );
-        },
-        loading: () => const AppLoadingState(),
-        error: (err, st) => AppErrorState(
-          title: 'availability.unavailable'.tr,
-          message: '$err',
-          actionLabel: 'action.retry'.tr,
-          onAction: () =>
-              ref.invalidate(sectionMetadataStreamProvider(sectionId)),
-        ),
+        children: [
+          AsyncValueView(
+            value: section,
+            data: (value) => InfoSection(section: value),
+            loadingMessage: 'availability.loading'.tr,
+            errorTitle: 'availability.unavailable'.tr,
+            retryLabel: 'action.retry'.tr,
+            onRetry: () =>
+                ref.invalidate(sectionMetadataStreamProvider(sectionId)),
+          ),
+        ],
       ),
     );
   }

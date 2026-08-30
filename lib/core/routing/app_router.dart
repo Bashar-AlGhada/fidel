@@ -15,7 +15,10 @@ import '../../features/testers/presentation/cpu_monitor_page.dart';
 import '../../features/testers/presentation/network_monitor_page.dart';
 import '../../features/testers/presentation/noise_checker_page.dart';
 import '../../features/testers/presentation/screen_tester_page.dart';
+import '../../features/testers/presentation/speed_test_page.dart';
 import '../../features/testers/presentation/testers_page.dart';
+import '../../features/testers/presentation/torch_tester_page.dart';
+import '../../features/testers/presentation/vibration_tester_page.dart';
 import '../ui/app_states.dart';
 import 'app_nav_shell.dart';
 import 'nav_tabs.dart';
@@ -134,6 +137,30 @@ GoRouter buildRouter() {
                   context: c,
                   state: s,
                   child: const CpuMonitorPage(),
+                ),
+              ),
+              GoRoute(
+                path: 'vibration',
+                pageBuilder: (c, s) => buildFadeScaleTransition(
+                  context: c,
+                  state: s,
+                  child: const VibrationTesterPage(),
+                ),
+              ),
+              GoRoute(
+                path: 'torch',
+                pageBuilder: (c, s) => buildFadeScaleTransition(
+                  context: c,
+                  state: s,
+                  child: const TorchTesterPage(),
+                ),
+              ),
+              GoRoute(
+                path: 'speed',
+                pageBuilder: (c, s) => buildFadeScaleTransition(
+                  context: c,
+                  state: s,
+                  child: const SpeedTestPage(),
                 ),
               ),
             ],

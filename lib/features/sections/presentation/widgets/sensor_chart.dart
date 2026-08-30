@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import '../../../../core/theme/theme_tokens.dart';
 import '../../../../core/ui/app_states.dart';
 import '../../../../domain/entities/sensors/sensor_reading_entity.dart';
+import '../../../../domain/units/measurement_formatter.dart';
 
 class SensorChart extends StatefulWidget {
   const SensorChart({
@@ -31,7 +32,10 @@ class _SensorChartState extends State<SensorChart> {
         final height = constraints.maxHeight.isFinite
             ? math.min(constraints.maxHeight, widget.height)
             : widget.height;
-        return SizedBox(height: height, child: child);
+        final width = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : widget.height * 1.6;
+        return SizedBox(width: width, height: height, child: child);
       },
     );
   }
@@ -169,7 +173,7 @@ class _SensorChartPainter extends CustomPainter {
 
     _paintLabel(
       canvas: canvas,
-      text: _compact(maxY),
+      text: formatMeasurement(maxY),
       style: textStyle,
       dx: tokens.space1,
       dy: top - 2,
@@ -177,25 +181,27 @@ class _SensorChartPainter extends CustomPainter {
     );
     _paintLabel(
       canvas: canvas,
-      text: _compact(minY),
+      text: formatMeasurement(minY),
       style: textStyle,
       dx: tokens.space1,
       dy: top + h - 10,
       maxWidth: yLabelWidth - tokens.space1,
     );
+    final spanSeconds =
+        samples.last.timestamp.difference(samples.first.timestamp).inSeconds;
     _paintLabel(
       canvas: canvas,
-      text: '0',
+      text: _elapsedLabel(spanSeconds),
       style: textStyle,
       dx: left,
       dy: top + h + 4,
-      maxWidth: 48,
+      maxWidth: 64,
     );
     _paintLabel(
       canvas: canvas,
-      text: '${samples.length - 1}',
+      text: 'sensor.now'.tr,
       style: textStyle,
-      dx: left + w - 32,
+      dx: left + w - 40,
       dy: top + h + 4,
       maxWidth: 40,
     );
@@ -270,13 +276,12 @@ class _SensorChartPainter extends CustomPainter {
     painter.dispose();
   }
 
-  String _compact(double value) {
-    final fixed = value.toStringAsFixed(2);
-    return fixed.contains('.')
-        ? fixed
-              .replaceFirst(RegExp(r'0+$'), '')
-              .replaceFirst(RegExp(r'\.$'), '')
-        : fixed;
+  String _elapsedLabel(int seconds) {
+    final s = seconds.abs();
+    if (s >= 3600) return '-${s ~/ 3600}h';
+    if (s >= 60) return '-${s ~/ 60}m';
+    if (s > 0) return '-${s}s';
+    return '0s';
   }
 
   @override

@@ -105,8 +105,14 @@ class NetworkStatusMapper {
     Map<String, dynamic> map,
     NetworkStatusEntity? p,
   ) {
-    return (p ?? _initial).copyWith(
-      bleCount: _intOrNull(map['count']),
+    final base = p ?? _initial;
+    final count = _intOrNull(map['count']);
+    // A live heartbeat with an explicit zero count must clear the stale
+    // link stats (copyWith cannot write nulls), otherwise the UI keeps
+    // showing devices that are no longer in range.
+    if (count == 0) return base.clearBle();
+    return base.copyWith(
+      bleCount: count,
       bleAvgRssi: map['avgRssi'] is num
           ? (map['avgRssi'] as num).toDouble()
           : null,

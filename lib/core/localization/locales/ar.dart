@@ -81,6 +81,82 @@ const Map<String, String> ar = <String, String>{
   'sensor.noDataHint': 'بانتظار قراءات الحساس.',
   'sensor.invalidData': 'بيانات حساس غير صالحة',
   'sensor.invalidDataHint': 'تم استلام قيم غير قابلة للقراءة. حاول مرة أخرى.',
+  'sensor.now': 'الآن',
+
+  'sensor.axis.x': 'X',
+  'sensor.axis.y': 'Y',
+  'sensor.axis.z': 'Z',
+  'sensor.axis.azimuth': 'السمت',
+  'sensor.axis.pitch': 'الميلان',
+  'sensor.axis.roll': 'الانحراف',
+  'sensor.axis.value': 'القيمة',
+
+  'sensor.type.accelerometer': 'مقياس التسارع',
+  'sensor.type.magneticField': 'مقياس المغناطيسية',
+  'sensor.type.orientation': 'الاتجاه (مهمل)',
+  'sensor.type.gyroscope': 'الجيروسكوب',
+  'sensor.type.light': 'الإضاءة المحيطة',
+  'sensor.type.pressure': 'مقياس الضغط الجوي',
+  'sensor.type.temperature': 'الحرارة (مهمل)',
+  'sensor.type.proximity': 'القرب',
+  'sensor.type.gravity': 'الجاذبية',
+  'sensor.type.linearAcceleration': 'التسارع الخطي',
+  'sensor.type.rotationVector': 'متجه الدوران',
+  'sensor.type.relativeHumidity': 'الرطوبة النسبية',
+  'sensor.type.ambientTemperature': 'الحرارة المحيطة',
+  'sensor.type.magneticFieldUncalibrated': 'مقياس المغناطيسية (غير معاير)',
+  'sensor.type.gameRotationVector': 'متجه دوران الألعاب',
+  'sensor.type.gyroscopeUncalibrated': 'الجيروسكوب (غير معاير)',
+  'sensor.type.significantMotion': 'حركة مهمة',
+  'sensor.type.stepDetector': 'كاشف الخطوات',
+  'sensor.type.stepCounter': 'عدّاد الخطوات',
+  'sensor.type.geomagneticRotationVector': 'متجه الدوران المغناطيسي الأرضي',
+  'sensor.type.heartRate': 'معدل نبضات القلب',
+  'sensor.type.tiltDetector': 'كاشف الميل',
+  'sensor.type.wristTiltGesture': 'إيماءة ميل المعصم',
+  'sensor.type.accelerometerUncalibrated': 'مقياس التسارع (غير معاير)',
+  'sensor.type.unknown': 'حساس غير معروف',
+
+  'sensor.typeDesc.accelerometer':
+      'يقيس قوى التسارع بما فيها الجاذبية على ثلاثة محاور.',
+  'sensor.typeDesc.magneticField':
+      'يقيس شدة المجال المغناطيسي المحيط بالجهاز.',
+  'sensor.typeDesc.orientation': 'مستشعر قديم لزوايا اتجاه الجهاز.',
+  'sensor.typeDesc.gyroscope':
+      'يقيس سرعة الدوران حول كل محور من محاور الجهاز.',
+  'sensor.typeDesc.light': 'يقيس مستوى الضوء المحيط بالشاشة.',
+  'sensor.typeDesc.pressure': 'يقيس ضغط الهواء الجوي لتقدير الارتفاع.',
+  'sensor.typeDesc.temperature': 'مستشعر قديم للحرارة الداخلية للجهاز.',
+  'sensor.typeDesc.proximity': 'يكتشف مدى قرب جسم ما من الشاشة.',
+  'sensor.typeDesc.gravity': 'يقيس جذب الأرض على كل محور.',
+  'sensor.typeDesc.linearAcceleration':
+      'يقيس التسارع دون الجاذبية، مثل حركة السيارة.',
+  'sensor.typeDesc.rotationVector': 'يبلّغ عن اتجاه الجهاز كمتجه دوران.',
+  'sensor.typeDesc.relativeHumidity':
+      'يقيس الرطوبة النسبية للهواء المحيط.',
+  'sensor.typeDesc.ambientTemperature': 'يقيس حرارة الهواء المحيط.',
+  'sensor.typeDesc.magneticFieldUncalibrated':
+      'قراءات مغناطيسية خام دون تصحيح المعايرة.',
+  'sensor.typeDesc.gameRotationVector':
+      'متجه دوران دون مرجع الشمال المغناطيسي.',
+  'sensor.typeDesc.gyroscopeUncalibrated':
+      'سرعات دوران خام دون تعويض الانحراف.',
+  'sensor.typeDesc.significantMotion':
+      'يكتشف الحركات المهمة كالمشي أو القيادة.',
+  'sensor.typeDesc.stepDetector': 'يشير إلى كل خطوة على حدة.',
+  'sensor.typeDesc.stepCounter':
+      'يحصي إجمالي الخطوات منذ آخر إعادة تشغيل.',
+  'sensor.typeDesc.geomagneticRotationVector':
+      'اتجاه مشتق من مقياس المغناطيسية والتسارع.',
+  'sensor.typeDesc.heartRate':
+      'يقيس النبض الحالي بعدد النبضات في الدقيقة.',
+  'sensor.typeDesc.tiltDetector':
+      'يكتشف ميل الجهاز من وضع الراحة المستوية.',
+  'sensor.typeDesc.wristTiltGesture':
+      'يكتشف إيماءات ميل المعصم على الأجهزة القابلة للارتداء.',
+  'sensor.typeDesc.accelerometerUncalibrated':
+      'قراءات تسارع خام دون تعويض الانحياز.',
+  'sensor.typeDesc.unknown': 'نوع حساس غير معروف أبلغ عنه هذا الجهاز.',
 
   'section.deviceBuild': 'الجهاز والبنية',
   'section.display': 'الشاشة',
@@ -294,4 +370,125 @@ const Map<String, String> ar = <String, String>{
   'testers.permissionRestricted': 'إذن الميكروفون مقيّد.',
   'testers.permissionLimited': 'إذن الميكروفون محدود.',
   'testers.permissionProvisional': 'تم منح إذن الميكروفون بشكل مؤقت.',
+
+  // Battery monitor (live vitals + trends)
+  'battery.chargeRemaining': 'الشحنة المتبقية',
+  'battery.currentEstimated': 'التيار المُقدَّر',
+  'battery.energyCounterMwh': 'عداد الطاقة',
+  'battery.health.cold': 'باردة',
+  'battery.health.dead': 'مفرغة',
+  'battery.health.good': 'جيدة',
+  'battery.health.over_voltage': 'جهد زائد',
+  'battery.health.overheat': 'ارتفاع الحرارة',
+  'battery.health.unspecified_failure': 'عطل',
+  'battery.percentHistory': 'اتجاه المستوى',
+  'battery.powerHistory': 'اتجاه القدرة',
+  'battery.status.unknown': 'غير معروف',
+
+  // Cameras / codecs sections
+  'camera.empty': 'لم يتم العثور على كاميرات',
+  'camera.logical': 'منطقية',
+  'camera.orientation': 'الاتجاه',
+  'camera.parentLogical': 'جزء من الكاميرا المنطقية',
+  'camera.physical': 'عدسة فعلية',
+  'camera.resolution': 'الدقة',
+  'camera.sensorSize': 'حجم المستشعر',
+  'codec.empty': 'لم يتم العثور على مرمّزات',
+
+  // CPU monitor
+  'cpu.core': 'النواة {index}',
+  'cpu.history': 'سجل الاستخدام',
+  'cpu.perCore': 'الاستخدام لكل نواة',
+  'cpu.totalUsage': 'الاستخدام الإجمالي',
+
+  // Dashboard
+  'dashboard.deviceTagline': 'تشخيص الجهاز بنظرة واحدة',
+
+  // Network radios
+  'network.bleAdapterOff': 'البلوتوث متوقف.',
+  'network.blePermissionDenied': 'تم رفض إذن البلوتوث.',
+  'network.bleUnsupported': 'بلوتوث LE غير مدعوم على هذا الجهاز.',
+  'network.scanFailed': 'تعذّر بدء البحث.',
+  'network.scanningZero': 'جارٍ البحث… لم يتم العثور على أجهزة بعد.',
+
+  // Screen tester
+  'screenTester.autoCycle': 'تبديل تلقائي',
+  'screenTester.clearTrails': 'مسح المسارات',
+  'screenTester.deadPixelIntro':
+      'ستظهر شاشات ملونة كاملة. راقب البكسلات التي تبقى مضيئة أو معتمة.',
+  'screenTester.deadPixelIntroTitle': 'فحص البكسل الميت',
+  'screenTester.deadPixelProgress': 'اللون {index} من {total}',
+  'screenTester.deadPixelStart': 'ابدأ الفحص',
+  'screenTester.gradientSweep': 'تدرّج لوني',
+  'screenTester.grayRamp': 'تدرّج رمادي',
+  'screenTester.maxTouches': 'الأقصى {count}',
+  'screenTester.mode.deadPixel': 'بكسل ميت',
+  'screenTester.mode.gradient': 'تدرّج',
+  'screenTester.mode.solid': 'ألوان صلبة',
+  'screenTester.mode.touch': 'لمس',
+  'screenTester.touches': '{count} لمسات',
+  'screenTester.touchHint': 'استخدم عدة أصابع لاختبار اللمس المتعدد.',
+
+  // Settings
+  'settings.appearance': 'المظهر',
+  'settings.languageSystem': 'افتراضي النظام',
+
+  // Speed test
+  'speedTest.avgLatency': 'متوسط {value} ms',
+  'speedTest.best': 'الأفضل',
+  'speedTest.cancel': 'إلغاء',
+  'speedTest.disclaimer': 'تعتمد النتائج على اتصالك وعلى خوادم الاختبار العامة.',
+  'speedTest.download': 'تنزيل',
+  'speedTest.error.failed': 'فشل الاختبار: {detail}',
+  'speedTest.error.offline': 'لا يوجد اتصال بالشبكة ({detail})',
+  'speedTest.error.timeout': 'انتهت مهلة الاختبار.',
+  'speedTest.intro': 'قِس اتصالك',
+  'speedTest.introHint': 'يجري اختبارات زمن الاستجابة والتنزيل والرفع عبر خوادم عامة.',
+  'speedTest.jitter': 'التذبذب',
+  'speedTest.latency': 'زمن الاستجابة',
+  'speedTest.peak': 'الذروة {value} Mbps',
+  'speedTest.phase.download': 'جارٍ التنزيل…',
+  'speedTest.phase.ping': 'قياس زمن الاستجابة…',
+  'speedTest.phase.upload': 'جارٍ الرفع…',
+  'speedTest.rerun': 'إعادة الاختبار',
+  'speedTest.resultsTitle': 'النتائج',
+  'speedTest.start': 'بدء الاختبار',
+  'speedTest.upload': 'رفع',
+
+  // Testers hub
+  'testers.speedTest': 'اختبار السرعة',
+  'testers.speedTestHint': 'قياس زمن الاستجابة وسرعة التنزيل والرفع',
+  'testers.torchTester': 'اختبار المصباح',
+  'testers.torchTesterHint': 'شغّل مصباح LED وجرّب أنماط الوميض',
+  'testers.vibrationTester': 'اختبار الاهتزاز',
+  'testers.vibrationTesterHint': 'جرّب اهتزازات قصيرة وطويلة ومنمّطة',
+
+  // Thermal section
+  'thermal.zonesTitle': 'مناطق الحرارة',
+
+  // Torch tester
+  'torch.frequency': '{value} Hz',
+  'torch.hardwareMissingTitle': 'لا يوجد فلاش',
+  'torch.reason.camera_error': 'أبلغت الكاميرا عن خطأ.',
+  'torch.reason.failed': 'تعذّر تشغيل المصباح.',
+  'torch.reason.torch_unavailable': 'لا يحتوي هذا الجهاز على فلاش قابل للتحكم.',
+  'torch.startStrobe': 'بدء الوميض',
+  'torch.stopStrobe': 'إيقاف الوميض',
+  'torch.strobe': 'وميض',
+  'torch.toggleOff': 'إيقاف',
+  'torch.toggleOn': 'تشغيل',
+
+  // Vibration tester
+  'vibration.amplitudeHint': 'يتطلب التحكم بالقوة أندرويد 8.0+ ومحرّكًا مدعومًا.',
+  'vibration.ok': 'اهتزاز!',
+  'vibration.reason.failed': 'فشل الاهتزاز.',
+  'vibration.reason.invalid_args': 'نمط غير صالح.',
+  'vibration.reason.permission_denied': 'تم رفض إذن الاهتزاز.',
+  'vibration.reason.unsupported': 'لا يوجد محرّك اهتزاز في هذا الجهاز.',
+  'vibration.tapHint': 'اختر نمطًا لتشعر به.',
+  'vibration.patternAmplitude': 'موجة سعة',
+  'vibration.patternDouble': 'نقرة مزدوجة',
+  'vibration.patternLong': 'طويل',
+  'vibration.patternRamp': 'منحدر نبضي',
+  'vibration.patternShort': 'قصير',
 };

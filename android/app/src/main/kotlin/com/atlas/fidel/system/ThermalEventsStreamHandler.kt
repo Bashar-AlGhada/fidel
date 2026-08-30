@@ -91,6 +91,8 @@ class ThermalEventsStreamHandler(
 
     val temps = metadataSnapshotProvider.bestEffortThermalTemperatures()
     payload["temperatures"] = temps
+    // Best-effort sysfs zones; empty list when unavailable. Never throws.
+    payload["zones"] = metadataSnapshotProvider.bestEffortThermalZones()
 
     lastKnown = payload.toMap()
 

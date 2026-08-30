@@ -117,9 +117,6 @@ flutter_native_splash:
   # Adjust image size to prevent cropping on splash screen
   android_gravity: center
   ios_content_mode: center
-  android_12:
-    color: "#081018"
-    image: assets/images/icon.PNG
-    # Ensure the icon isn't cropped on Android 12+
-    image_dark: assets/images/icon.PNG
-    color_dark: "#081018"
+  # No `android_12` block: on Android 12+ this falls back to the legacy
+  # full-screen splash drawable instead of the adaptive-icon splash, which
+  # would otherwise mask/crop the logo into the device's icon shape.

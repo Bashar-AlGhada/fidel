@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_typography.dart';
 import '../theme/theme_tokens.dart';
 
 class AppLoadingState extends StatelessWidget {
@@ -20,7 +21,7 @@ class AppLoadingState extends StatelessWidget {
             const CircularProgressIndicator(),
             if (message != null) ...[
               SizedBox(height: tokens.space3),
-              Text(message!, style: theme.textTheme.bodyMedium),
+              Text(message!, style: AppText.muted(context)),
             ],
           ],
         ),
@@ -73,7 +74,7 @@ class _StateCard extends StatelessWidget {
                       SizedBox(height: tokens.space2),
                       Text(
                         message!,
-                        style: theme.textTheme.bodyMedium,
+                        style: AppText.muted(context),
                         textAlign: TextAlign.center,
                       ),
                     ],

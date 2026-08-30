@@ -19,6 +19,7 @@ import android.nfc.NfcAdapter
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.telephony.PhoneStateListener
 import android.telephony.SignalStrength
 import android.telephony.SubscriptionManager
@@ -44,9 +45,9 @@ import java.util.concurrent.atomic.AtomicBoolean
  * BLE results are aggregated statistics only (no MACs/names leave the
  * device).
  *
- * Unlike the GNSS/noise handlers this feed never emits `kind:"error"`
- * frames; internal failures are swallowed here and simply surface as
- * absent fields downstream.
+ * Setup/init failures surface as `{ "kind": "error", "code": ...,
+ * "message": ... }` frames; per-tick failures are swallowed and simply
+ * surface as absent fields downstream.
  */
 class NetworkEventsStreamHandler(private val context: Context) : EventChannel.StreamHandler {
   private val mainHandler = Handler(Looper.getMainLooper())
@@ -59,6 +60,7 @@ class NetworkEventsStreamHandler(private val context: Context) : EventChannel.St
   // BLE aggregation window.
   private val bleRssis = mutableListOf<Int>()
   private val bleScanning = AtomicBoolean(false)
+  private var lastBleFrameAtMs = 0L
 
   private val bleCallback = object : ScanCallback() {
     override fun onScanResult(callbackType: Int, result: ScanResult) {
@@ -71,25 +73,48 @@ class NetworkEventsStreamHandler(private val context: Context) : EventChannel.St
   private companion object {
     const val pollInitialDelayMs = 250L
     const val pollIntervalMs = 1000L
+    const val bleHeartbeatMs = 2_000L
   }
 
   private val ticker = object : Runnable {
     override fun run() {
       if (!active.get()) return
+      // Each emission is isolated: one bad tick must neither kill the loop
+      // nor starve the remaining feeds.
       try {
         emitWifiInfo()
+      } catch (e: Exception) {
+        logPollFailure(e)
+      }
+      try {
         emitCellSnapshot()
+      } catch (e: Exception) {
+        logPollFailure(e)
+      }
+      try {
         emitNfc()
+      } catch (e: Exception) {
+        logPollFailure(e)
+      }
+      try {
         emitBleWindow()
+      } catch (e: Exception) {
+        logPollFailure(e)
+      }
+      try {
         emitState()
       } catch (e: Exception) {
-        // OEM connectivity/NFC APIs vary wildly; a single bad call must
-        // never take down the main thread or kill the poll loop.
-        if (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) {
-          android.util.Log.w("fidel_network", "poll failed", e)
-        }
+        logPollFailure(e)
       }
       mainHandler.postDelayed(this, pollIntervalMs)
+    }
+  }
+
+  // OEM connectivity/NFC APIs vary wildly; a single bad call must never
+  // take down the main thread or kill the poll loop.
+  private fun logPollFailure(e: Exception) {
+    if (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) {
+      android.util.Log.w("fidel_network", "poll failed", e)
     }
   }
 
@@ -108,19 +133,36 @@ class NetworkEventsStreamHandler(private val context: Context) : EventChannel.St
     sink = events
     active.set(true)
 
-    connectivityManager =
-      context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-    try {
-      connectivityManager?.registerDefaultNetworkCallback(networkCallback)
-    } catch (_: Exception) {
-      Unit
+    // Setup is fully guarded: a throw anywhere must still yield a visible
+    // error frame on the Dart side plus a best-effort ticker, never a hang.
+    val initFailure: Exception? = try {
+      connectivityManager =
+        context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+      emitSeedState()
+      try {
+        connectivityManager?.registerDefaultNetworkCallback(networkCallback)
+      } catch (_: Exception) {
+        Unit
+      }
+      registerCellListeners()
+      null
+    } catch (e: Exception) {
+      e
     }
 
-    registerCellListeners()
+    if (initFailure != null) {
+      android.util.Log.w("fidel_network", "network feed init failed", initFailure)
+      emitErrorTo(events, "init_failed", initFailure.message)
+    }
 
-    // Initial stagger lets the first network callback land before the
-    // first poll so state details are populated on arrival.
-    mainHandler.postDelayed(ticker, pollInitialDelayMs)
+    try {
+      // Initial stagger lets the first network callback land before the
+      // first poll so state details are populated on arrival.
+      mainHandler.postDelayed(ticker, pollInitialDelayMs)
+    } catch (e: Exception) {
+      android.util.Log.w("fidel_network", "poll loop failed to start", e)
+      emitErrorTo(events, "init_failed", e.message)
+    }
   }
 
   override fun onCancel(arguments: Any?) {
@@ -152,10 +194,16 @@ class NetworkEventsStreamHandler(private val context: Context) : EventChannel.St
     phoneListeners.clear()
   }
 
-  /** Flutter toggles the privacy-safe aggregate BLE scan from the UI. */
+  /**
+   * Flutter toggles the privacy-safe aggregate BLE scan from the UI.
+   *
+   * Returns `{ok: Boolean, reason: String?}` consumed by SystemChannels;
+   * [reason] is one of `adapter_off`, `permission_denied`, `scan_failed`,
+   * `unsupported`, or null on success.
+   */
   @SuppressLint("MissingPermission") // Caller gates on BLUETOOTH_SCAN; re-checked below for defense in depth.
-  fun setBleScanning(enabled: Boolean) {
-    if (enabled == bleScanning.get()) return
+  fun setBleScanning(enabled: Boolean): Map<String, Any?> {
+    if (enabled == bleScanning.get()) return bleResult(ok = true, reason = null)
 
     if (!enabled) {
       bleScanning.set(false)
@@ -166,15 +214,28 @@ class NetworkEventsStreamHandler(private val context: Context) : EventChannel.St
         Unit
       }
       bluetoothLeScanner = null
-      return
+      return bleResult(ok = true, reason = null)
     }
 
-    val manager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager ?: return
+    if (!context.packageManager.hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
+      return bleResult(ok = false, reason = "unsupported")
+    }
+    val manager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
+      ?: return bleResult(ok = false, reason = "unsupported")
     val adapter = try {
-      manager.adapter?.takeIf { it.isEnabled }
+      manager.adapter
+    } catch (_: Exception) {
+      null
+    } ?: return bleResult(ok = false, reason = "unsupported")
+
+    val adapterOn = try {
+      adapter.isEnabled
     } catch (_: SecurityException) {
-      null // BLUETOOTH_CONNECT not granted yet.
-    } ?: return
+      // State is unqueryable without BLUETOOTH_CONNECT on S+: permission gap.
+      return bleResult(ok = false, reason = "permission_denied")
+    }
+    if (!adapterOn) return bleResult(ok = false, reason = "adapter_off")
+
     val hasPermission = if (android.os.Build.VERSION.SDK_INT >= 31) {
       context.checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) ==
         PackageManager.PERMISSION_GRANTED
@@ -182,20 +243,26 @@ class NetworkEventsStreamHandler(private val context: Context) : EventChannel.St
       context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) ==
         PackageManager.PERMISSION_GRANTED
     }
-    if (!hasPermission) return
+    if (!hasPermission) return bleResult(ok = false, reason = "permission_denied")
 
-    val scanner = adapter.bluetoothLeScanner ?: return
+    val scanner = adapter.bluetoothLeScanner
+      ?: return bleResult(ok = false, reason = "unsupported")
     val settings = ScanSettings.Builder()
-      .setScanMode(ScanSettings.SCAN_MODE_LOW_POWER)
+      .setScanMode(ScanSettings.SCAN_MODE_BALANCED)
       .build()
-    try {
+    return try {
       scanner.startScan(null, settings, bleCallback)
       bluetoothLeScanner = scanner
+      lastBleFrameAtMs = 0L // Force an immediate first heartbeat frame.
       bleScanning.set(true)
+      bleResult(ok = true, reason = null)
     } catch (_: Exception) {
-      Unit
+      bleResult(ok = false, reason = "scan_failed")
     }
   }
+
+  private fun bleResult(ok: Boolean, reason: String?): Map<String, Any?> =
+    mapOf("ok" to ok, "reason" to reason)
 
   private fun emitBleWindow() {
     if (!bleScanning.get()) return
@@ -204,49 +271,60 @@ class NetworkEventsStreamHandler(private val context: Context) : EventChannel.St
       bleRssis.clear()
       copy
     }
-    if (snapshot.isEmpty()) return
+    val now = SystemClock.elapsedRealtime()
+    // Heartbeat: empty windows still emit (~every [bleHeartbeatMs]) so the
+    // UI shows a live zero-count instead of eternal idle.
+    if (snapshot.isEmpty() && now - lastBleFrameAtMs < bleHeartbeatMs) return
+    lastBleFrameAtMs = now
 
     mainHandler.post {
       sink?.success(
         mapOf(
           "kind" to "ble",
           "count" to snapshot.size,
-          "avgRssi" to snapshot.average(),
-          "strongestRssi" to snapshot.max(),
+          "avgRssi" to if (snapshot.isEmpty()) null else snapshot.average(),
+          "strongestRssi" to if (snapshot.isEmpty()) null else snapshot.max(),
         )
       )
     }
   }
 
   private fun registerCellListeners() {
-    val sm = context.getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE)
-      as? SubscriptionManager ?: return
+    try {
+      val sm = context.getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE)
+        as? SubscriptionManager ?: return
 
-    /** getDbm() via reflection: present on every API level, but its Kotlin
-     *  synthetic property has proven toolchain-dependent. */
-    @Suppress("DEPRECATION")
-    fun wire(subscriptionId: Int) {
-      val tm = (context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager)
-        .createForSubscriptionId(subscriptionId)
-      val listener = object : PhoneStateListener() {
-        override fun onSignalStrengthsChanged(signalStrength: SignalStrength?) {
-          if (signalStrength != null) emitCell(subscriptionId, signalStrength)
+      /** getDbm() via reflection: present on every API level, but its Kotlin
+       *  synthetic property has proven toolchain-dependent. */
+      @Suppress("DEPRECATION")
+      fun wire(subscriptionId: Int) {
+        val tm = (context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager)
+          .createForSubscriptionId(subscriptionId)
+        val listener = object : PhoneStateListener() {
+          override fun onSignalStrengthsChanged(signalStrength: SignalStrength?) {
+            if (signalStrength != null) emitCell(subscriptionId, signalStrength)
+          }
+        }
+        try {
+          tm.listen(listener, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS)
+          phoneListeners.add(listener to tm)
+        } catch (_: Exception) {
+          Unit
         }
       }
-      try {
-        tm.listen(listener, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS)
-        phoneListeners.add(listener to tm)
-      } catch (_: Exception) {
-        Unit
-      }
-    }
 
-    val subs = try {
-      sm.activeSubscriptionInfoList
-    } catch (_: SecurityException) {
-      null
-    } ?: emptyList()
-    for (sub in subs) wire(sub.subscriptionId)
+      val subs = try {
+        sm.activeSubscriptionInfoList
+      } catch (e: Exception) {
+        android.util.Log.w("fidel_network", "active subscription list unavailable", e)
+        null
+      } ?: emptyList()
+      for (sub in subs) wire(sub.subscriptionId)
+    } catch (e: Exception) {
+      // Telephony internals vary wildly across OEMs/SKUs; cell detail is
+      // optional decoration on this feed.
+      android.util.Log.w("fidel_network", "cell listener registration failed", e)
+    }
   }
 
   @Suppress("DEPRECATION")
@@ -320,8 +398,40 @@ class NetworkEventsStreamHandler(private val context: Context) : EventChannel.St
     }
   }
 
+  private fun stateFrame(connected: Boolean, metered: Boolean, transport: String): Map<String, Any?> =
+    mapOf(
+      "kind" to "state",
+      "connected" to connected,
+      "metered" to metered,
+      "transport" to transport,
+    )
+
+  /** Best-effort immediate state frame; unknowns degrade to zeros. */
+  private fun emitSeedState() {
+    try {
+      emitState()
+    } catch (_: Exception) {
+      emitUnknownState()
+    }
+  }
+
+  private fun emitUnknownState() {
+    mainHandler.post { sink?.success(stateFrame(false, false, "none")) }
+  }
+
+  // Delivers through an explicit sink so init failures still reach Dart
+  // even when [stop] has already cleared the field.
+  private fun emitErrorTo(target: EventChannel.EventSink?, code: String, message: String?) {
+    mainHandler.post {
+      target?.success(mapOf("kind" to "error", "code" to code, "message" to (message ?: "")))
+    }
+  }
+
   private fun emitState() {
-    val cm = connectivityManager ?: return
+    val cm = connectivityManager ?: run {
+      emitUnknownState()
+      return
+    }
     val network = cm.activeNetwork
     val caps = network?.let { cm.getNetworkCapabilities(it) }
 
@@ -336,13 +446,12 @@ class NetworkEventsStreamHandler(private val context: Context) : EventChannel.St
 
     mainHandler.post {
       sink?.success(
-        mapOf(
-          "kind" to "state",
-          "connected" to (caps != null && caps.hasCapability(
+        stateFrame(
+          connected = (caps != null && caps.hasCapability(
             NetworkCapabilities.NET_CAPABILITY_VALIDATED
           )),
-          "metered" to (caps?.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED) == false),
-          "transport" to transport,
+          metered = (caps?.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED) == false),
+          transport = transport,
         )
       )
     }

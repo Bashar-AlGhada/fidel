@@ -4,6 +4,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../application/providers/units_providers.dart';
 import '../../../core/localization/locale_provider.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../core/theme/theme_tokens.dart';
 import '../../../core/ui/app_card.dart';
@@ -20,8 +21,7 @@ class SettingsPage extends ConsumerWidget {
     final themeMode = ref.watch(themeModeProvider);
     final locale = ref.watch(localeProvider);
     final unitPrefs = ref.watch(unitPreferencesStreamProvider);
-    final theme = Theme.of(context);
-    final tokens = theme.extension<ThemeTokensExtension>()!.tokens;
+    final tokens = context.tokens;
 
     return Scaffold(
       appBar: AppBar(title: Text('nav.settings'.tr)),
@@ -29,69 +29,29 @@ class SettingsPage extends ConsumerWidget {
         padding: EdgeInsets.all(tokens.space2),
         children: [
           AppSection(
-            title: 'settings.theme'.tr,
+            title: 'settings.appearance'.tr,
+            icon: Icons.palette_outlined,
             child: AppCard(
-              child: DropdownButtonFormField<AppThemeMode>(
-                initialValue: themeMode,
-                decoration: const InputDecoration(isDense: true),
-                onChanged: (v) {
-                  if (v == null) return;
-                  ref.read(themeModeProvider.notifier).setTheme(v);
-                },
-                items: [
-                  DropdownMenuItem(
-                    value: AppThemeMode.light,
-                    child: Text('settings.themeLight'.tr),
-                  ),
-                  DropdownMenuItem(
-                    value: AppThemeMode.dark,
-                    child: Text('settings.themeDark'.tr),
-                  ),
-                  DropdownMenuItem(
-                    value: AppThemeMode.amoled,
-                    child: Text('settings.themeAmoled'.tr),
-                  ),
-                ],
+              child: _ThemeModeControl(
+                mode: themeMode,
+                onChanged: (mode) =>
+                    ref.read(themeModeProvider.notifier).setTheme(mode),
               ),
             ),
           ),
           SizedBox(height: tokens.space1),
           AppSection(
             title: 'settings.language'.tr,
+            icon: Icons.public,
             child: AppCard(
-              child: DropdownButtonFormField<Locale>(
-                initialValue: locale,
-                decoration: const InputDecoration(isDense: true),
-                onChanged: (v) {
-                  if (v == null) return;
-                  ref.read(localeProvider.notifier).setLocale(v);
-                  Get.updateLocale(v);
-                },
-                items: const [
-                  DropdownMenuItem(
-                    value: Locale('en', 'US'),
-                    child: Text('English'),
-                  ),
-                  DropdownMenuItem(
-                    value: Locale('de', 'DE'),
-                    child: Text('Deutsch'),
-                  ),
-                  DropdownMenuItem(
-                    value: Locale('fr', 'FR'),
-                    child: Text('Français'),
-                  ),
-                  DropdownMenuItem(
-                    value: Locale('es', 'ES'),
-                    child: Text('Español'),
-                  ),
-                  DropdownMenuItem(value: Locale('ar'), child: Text('العربية')),
-                ],
-              ),
+              onTap: () => _showLanguagePicker(context, ref, locale),
+              child: _LanguageTile(current: locale),
             ),
           ),
           SizedBox(height: tokens.space1),
           AppSection(
             title: 'settings.units'.tr,
+            icon: Icons.straighten_outlined,
             child: unitPrefs.when(
               skipLoadingOnReload: true,
               data: (prefs) => AppCard(
@@ -101,10 +61,7 @@ class SettingsPage extends ConsumerWidget {
                       ref.read(setUnitPreferencesProvider)(next),
                 ),
               ),
-              loading: () => const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
-                child: LinearProgressIndicator(),
-              ),
+              loading: () => const AppCard(child: AppLoadingState()),
               error: (err, st) => AppErrorState(
                 title: 'availability.unavailable'.tr,
                 message: '$err',
@@ -117,6 +74,163 @@ class SettingsPage extends ConsumerWidget {
       ),
     );
   }
+
+  void _showLanguagePicker(
+    BuildContext context,
+    WidgetRef ref,
+    Locale current,
+  ) {
+    final scheme = Theme.of(context).colorScheme;
+    final tokens = context.tokens;
+    final osResolved = resolveSupportedLocale(
+      WidgetsBinding.instance.platformDispatcher.locale,
+    );
+
+    final options = <(Locale?, String)>[
+      (null, 'settings.languageSystem'.tr),
+      for (final l in kSupportedLocales) (l, _languageDisplayName(l)),
+    ];
+
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  tokens.space4,
+                  0,
+                  tokens.space4,
+                  tokens.space1,
+                ),
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text(
+                    'settings.language'.tr,
+                    style: Theme.of(sheetContext).textTheme.titleMedium,
+                  ),
+                ),
+              ),
+              for (final (value, label) in options)
+                Builder(
+                  builder: (rowContext) {
+                    final isSelected = value == null
+                        ? current == osResolved
+                        : current == value;
+                    return ListTile(
+                      leading: Icon(
+                        value == null ? Icons.public_outlined : Icons.language,
+                        color: isSelected
+                            ? scheme.primary
+                            : scheme.onSurfaceVariant,
+                      ),
+                      title: Text(label),
+                      selected: isSelected,
+                      trailing: isSelected
+                          ? Icon(Icons.check, color: scheme.primary)
+                          : null,
+                      onTap: () {
+                        Navigator.of(rowContext).pop();
+                        final next = value ?? osResolved;
+                        ref.read(localeProvider.notifier).setLocale(next);
+                        Get.updateLocale(next);
+                      },
+                    );
+                  },
+                ),
+              SizedBox(height: tokens.space1),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+String _languageDisplayName(Locale locale) {
+  return switch (locale.languageCode) {
+    'en' => 'English',
+    'de' => 'Deutsch',
+    'fr' => 'Français',
+    'es' => 'Español',
+    'ar' => 'العربية',
+    _ => locale.toLanguageTag(),
+  };
+}
+
+class _ThemeModeControl extends StatelessWidget {
+  const _ThemeModeControl({required this.mode, required this.onChanged});
+
+  final AppThemeMode mode;
+  final ValueChanged<AppThemeMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: SegmentedButton<AppThemeMode>(
+        selected: {mode},
+        showSelectedIcon: false,
+        segments: [
+          ButtonSegment(
+            value: AppThemeMode.light,
+            icon: const Icon(Icons.light_mode_outlined),
+            label: Text('settings.themeLight'.tr),
+          ),
+          ButtonSegment(
+            value: AppThemeMode.dark,
+            icon: const Icon(Icons.dark_mode_outlined),
+            label: Text('settings.themeDark'.tr),
+          ),
+          ButtonSegment(
+            value: AppThemeMode.amoled,
+            icon: const Icon(Icons.contrast),
+            label: Text('settings.themeAmoled'.tr),
+          ),
+        ],
+        onSelectionChanged: (selection) => onChanged(selection.first),
+      ),
+    );
+  }
+}
+
+class _LanguageTile extends StatelessWidget {
+  const _LanguageTile({required this.current});
+
+  final Locale current;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tokens = context.tokens;
+    final isRtl = Directionality.of(context) == TextDirection.rtl;
+
+    return Row(
+      children: [
+        const _SettingsIconBadge(icon: Icons.translate),
+        SizedBox(width: tokens.space3),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('settings.language'.tr, style: theme.textTheme.bodyLarge),
+              Text(
+                _languageDisplayName(current),
+                style: AppText.muted(context),
+              ),
+            ],
+          ),
+        ),
+        Icon(
+          isRtl ? Icons.chevron_left : Icons.chevron_right,
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      ],
+    );
+  }
 }
 
 class _UnitsSettings extends StatelessWidget {
@@ -127,94 +241,113 @@ class _UnitsSettings extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Expanded(child: Text('units.temperature'.tr)),
-            DropdownButton<TemperatureUnit>(
-              value: prefs.temperature,
-              onChanged: (v) {
-                if (v != null) onChanged(prefs.copyWith(temperature: v));
-              },
-              items: [
-                DropdownMenuItem(
-                  value: TemperatureUnit.celsius,
-                  child: Text('units.celsius'.tr),
-                ),
-                DropdownMenuItem(
-                  value: TemperatureUnit.fahrenheit,
-                  child: Text('units.fahrenheit'.tr),
-                ),
-              ],
-            ),
+        _UnitPreferenceRow<TemperatureUnit>(
+          label: 'units.temperature'.tr,
+          value: prefs.temperature,
+          options: [
+            (TemperatureUnit.celsius, 'units.celsius'.tr),
+            (TemperatureUnit.fahrenheit, 'units.fahrenheit'.tr),
           ],
+          onChanged: (v) => onChanged(prefs.copyWith(temperature: v)),
         ),
-        Row(
-          children: [
-            Expanded(child: Text('units.dataSize'.tr)),
-            DropdownButton<DataSizeBase>(
-              value: prefs.dataSizeBase,
-              onChanged: (v) {
-                if (v != null) onChanged(prefs.copyWith(dataSizeBase: v));
-              },
-              items: [
-                DropdownMenuItem(
-                  value: DataSizeBase.base2,
-                  child: Text('units.base2'.tr),
-                ),
-                DropdownMenuItem(
-                  value: DataSizeBase.base10,
-                  child: Text('units.base10'.tr),
-                ),
-              ],
-            ),
+        SizedBox(height: tokens.space3),
+        _UnitPreferenceRow<DataSizeBase>(
+          label: 'units.dataSize'.tr,
+          value: prefs.dataSizeBase,
+          options: [
+            (DataSizeBase.base2, 'units.base2'.tr),
+            (DataSizeBase.base10, 'units.base10'.tr),
           ],
+          onChanged: (v) => onChanged(prefs.copyWith(dataSizeBase: v)),
         ),
-        Row(
-          children: [
-            Expanded(child: Text('units.rate'.tr)),
-            DropdownButton<RateUnit>(
-              value: prefs.rateUnit,
-              onChanged: (v) {
-                if (v != null) onChanged(prefs.copyWith(rateUnit: v));
-              },
-              items: [
-                DropdownMenuItem(
-                  value: RateUnit.bytesPerSecond,
-                  child: Text('units.bytesPerSecond'.tr),
-                ),
-                DropdownMenuItem(
-                  value: RateUnit.bitsPerSecond,
-                  child: Text('units.bitsPerSecond'.tr),
-                ),
-              ],
-            ),
+        SizedBox(height: tokens.space3),
+        _UnitPreferenceRow<RateUnit>(
+          label: 'units.rate'.tr,
+          value: prefs.rateUnit,
+          options: [
+            (RateUnit.bytesPerSecond, 'units.bytesPerSecond'.tr),
+            (RateUnit.bitsPerSecond, 'units.bitsPerSecond'.tr),
           ],
+          onChanged: (v) => onChanged(prefs.copyWith(rateUnit: v)),
         ),
-        Row(
-          children: [
-            Expanded(child: Text('units.system'.tr)),
-            DropdownButton<UnitSystem>(
-              value: prefs.unitSystem,
-              onChanged: (v) {
-                if (v != null) onChanged(prefs.copyWith(unitSystem: v));
-              },
-              items: [
-                DropdownMenuItem(
-                  value: UnitSystem.metric,
-                  child: Text('units.metric'.tr),
-                ),
-                DropdownMenuItem(
-                  value: UnitSystem.imperial,
-                  child: Text('units.imperial'.tr),
-                ),
-              ],
-            ),
+        SizedBox(height: tokens.space3),
+        _UnitPreferenceRow<UnitSystem>(
+          label: 'units.system'.tr,
+          value: prefs.unitSystem,
+          options: [
+            (UnitSystem.metric, 'units.metric'.tr),
+            (UnitSystem.imperial, 'units.imperial'.tr),
           ],
+          onChanged: (v) => onChanged(prefs.copyWith(unitSystem: v)),
         ),
       ],
+    );
+  }
+}
+
+class _UnitPreferenceRow<T> extends StatelessWidget {
+  const _UnitPreferenceRow({
+    required this.label,
+    required this.value,
+    required this.options,
+    required this.onChanged,
+  });
+
+  final String label;
+  final T value;
+  final List<(T, String)> options;
+  final ValueChanged<T> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tokens = context.tokens;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: theme.textTheme.labelLarge),
+        SizedBox(height: tokens.space1),
+        SizedBox(
+          width: double.infinity,
+          child: SegmentedButton<T>(
+            selected: {value},
+            showSelectedIcon: false,
+            segments: [
+              for (final (optionValue, optionLabel) in options)
+                ButtonSegment(value: optionValue, label: Text(optionLabel)),
+            ],
+            onSelectionChanged: (selection) => onChanged(selection.first),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SettingsIconBadge extends StatelessWidget {
+  const _SettingsIconBadge({required this.icon});
+
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tokens = context.tokens;
+
+    return Container(
+      width: tokens.space4,
+      height: tokens.space4,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(tokens.radiusSm),
+      ),
+      child: Icon(icon, size: 20, color: theme.colorScheme.onPrimaryContainer),
     );
   }
 }

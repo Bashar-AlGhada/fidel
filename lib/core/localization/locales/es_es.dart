@@ -83,6 +83,90 @@ const Map<String, String> esEs = <String, String>{
   'sensor.invalidData': 'Datos de sensor no válidos',
   'sensor.invalidDataHint':
       'Se recibieron valores ilegibles. Intenta de nuevo.',
+  'sensor.now': 'ahora',
+
+  'sensor.axis.x': 'X',
+  'sensor.axis.y': 'Y',
+  'sensor.axis.z': 'Z',
+  'sensor.axis.azimuth': 'Acimut',
+  'sensor.axis.pitch': 'Cabeceo',
+  'sensor.axis.roll': 'Alabeo',
+  'sensor.axis.value': 'Valor',
+
+  'sensor.type.accelerometer': 'Acelerómetro',
+  'sensor.type.magneticField': 'Magnetómetro',
+  'sensor.type.orientation': 'Orientación (obsoleto)',
+  'sensor.type.gyroscope': 'Giroscopio',
+  'sensor.type.light': 'Luz ambiental',
+  'sensor.type.pressure': 'Barómetro',
+  'sensor.type.temperature': 'Temperatura (obsoleto)',
+  'sensor.type.proximity': 'Proximidad',
+  'sensor.type.gravity': 'Gravedad',
+  'sensor.type.linearAcceleration': 'Aceleración lineal',
+  'sensor.type.rotationVector': 'Vector de rotación',
+  'sensor.type.relativeHumidity': 'Humedad relativa',
+  'sensor.type.ambientTemperature': 'Temperatura ambiental',
+  'sensor.type.magneticFieldUncalibrated': 'Magnetómetro (sin calibrar)',
+  'sensor.type.gameRotationVector': 'Vector de rotación de juego',
+  'sensor.type.gyroscopeUncalibrated': 'Giroscopio (sin calibrar)',
+  'sensor.type.significantMotion': 'Movimiento significativo',
+  'sensor.type.stepDetector': 'Detector de pasos',
+  'sensor.type.stepCounter': 'Contador de pasos',
+  'sensor.type.geomagneticRotationVector': 'Vector de rotación geomagnético',
+  'sensor.type.heartRate': 'Frecuencia cardíaca',
+  'sensor.type.tiltDetector': 'Detector de inclinación',
+  'sensor.type.wristTiltGesture': 'Gesto de muñeca',
+  'sensor.type.accelerometerUncalibrated': 'Acelerómetro (sin calibrar)',
+  'sensor.type.unknown': 'Sensor desconocido',
+
+  'sensor.typeDesc.accelerometer':
+      'Mide aceleraciones incluida la gravedad en tres ejes.',
+  'sensor.typeDesc.magneticField':
+      'Mide la intensidad del campo magnético ambiente.',
+  'sensor.typeDesc.orientation':
+      'Sensor antiguo de ángulos de orientación del dispositivo.',
+  'sensor.typeDesc.gyroscope':
+      'Mide la velocidad de rotación en cada eje del dispositivo.',
+  'sensor.typeDesc.light': 'Mide el nivel de luz alrededor de la pantalla.',
+  'sensor.typeDesc.pressure':
+      'Mide la presión atmosférica para estimar la altitud.',
+  'sensor.typeDesc.temperature':
+      'Sensor antiguo de la temperatura interna del dispositivo.',
+  'sensor.typeDesc.proximity':
+      'Detecta qué tan cerca está un objeto de la pantalla.',
+  'sensor.typeDesc.gravity':
+      'Mide la atracción gravitatoria en cada eje.',
+  'sensor.typeDesc.linearAcceleration':
+      'Mide la aceleración sin gravedad, p. ej. al conducir.',
+  'sensor.typeDesc.rotationVector':
+      'Informa la orientación como vector de rotación.',
+  'sensor.typeDesc.relativeHumidity':
+      'Mide la humedad relativa del aire circundante.',
+  'sensor.typeDesc.ambientTemperature':
+      'Mide la temperatura del aire circundante.',
+  'sensor.typeDesc.magneticFieldUncalibrated':
+      'Lecturas brutas del campo magnético sin calibración.',
+  'sensor.typeDesc.gameRotationVector':
+      'Vector de rotación sin referencia al norte magnético.',
+  'sensor.typeDesc.gyroscopeUncalibrated':
+      'Velocidades brutas sin compensación de deriva.',
+  'sensor.typeDesc.significantMotion':
+      'Detecta movimientos relevantes como caminar o conducir.',
+  'sensor.typeDesc.stepDetector': 'Señala cada paso dado.',
+  'sensor.typeDesc.stepCounter':
+      'Cuenta los pasos totales desde el último reinicio.',
+  'sensor.typeDesc.geomagneticRotationVector':
+      'Orientación derivada del magnetómetro y el acelerómetro.',
+  'sensor.typeDesc.heartRate':
+      'Mide el pulso actual en pulsaciones por minuto.',
+  'sensor.typeDesc.tiltDetector':
+      'Detecta cuando se inclina el dispositivo en reposo.',
+  'sensor.typeDesc.wristTiltGesture':
+      'Detecta gestos de inclinación de la muñeca.',
+  'sensor.typeDesc.accelerometerUncalibrated':
+      'Lecturas brutas de aceleración sin compensación de sesgo.',
+  'sensor.typeDesc.unknown':
+      'Tipo de sensor no reconocido informado por este dispositivo.',
 
   'section.deviceBuild': 'Dispositivo y Build',
   'section.display': 'Pantalla',
@@ -302,4 +386,129 @@ const Map<String, String> esEs = <String, String>{
   'testers.permissionLimited': 'Permiso de micrófono limitado.',
   'testers.permissionProvisional':
       'Permiso de micrófono provisional concedido.',
+
+  // Battery monitor (live vitals + trends)
+  'battery.chargeRemaining': 'Carga restante',
+  'battery.currentEstimated': 'Corriente estimada',
+  'battery.energyCounterMwh': 'Contador de energía',
+  'battery.health.cold': 'Frío',
+  'battery.health.dead': 'Agotada',
+  'battery.health.good': 'Buena',
+  'battery.health.over_voltage': 'Sobretensión',
+  'battery.health.overheat': 'Sobrecalentamiento',
+  'battery.health.unspecified_failure': 'Fallo',
+  'battery.percentHistory': 'Tendencia de nivel',
+  'battery.powerHistory': 'Tendencia de potencia',
+  'battery.status.unknown': 'Desconocido',
+
+  // Cameras / codecs sections
+  'camera.empty': 'No se encontraron cámaras',
+  'camera.logical': 'Lógica',
+  'camera.orientation': 'Orientación',
+  'camera.parentLogical': 'Parte de cámara lógica',
+  'camera.physical': 'Objetivo físico',
+  'camera.resolution': 'Resolución',
+  'camera.sensorSize': 'Tamaño del sensor',
+  'codec.empty': 'No se encontraron códecs',
+
+  // CPU monitor
+  'cpu.core': 'Núcleo {index}',
+  'cpu.history': 'Historial de uso',
+  'cpu.perCore': 'Uso por núcleo',
+  'cpu.totalUsage': 'Uso total',
+
+  // Dashboard
+  'dashboard.deviceTagline': 'Diagnóstico del dispositivo de un vistazo',
+
+  // Network radios
+  'network.bleAdapterOff': 'Bluetooth está apagado.',
+  'network.blePermissionDenied': 'Permiso de Bluetooth denegado.',
+  'network.bleUnsupported':
+      'Bluetooth LE no es compatible con este dispositivo.',
+  'network.scanFailed': 'No se pudo iniciar el escaneo.',
+  'network.scanningZero': 'Escaneando… 0 dispositivos encontrados aún.',
+
+  // Screen tester
+  'screenTester.autoCycle': 'Ciclo automático',
+  'screenTester.clearTrails': 'Borrar rastros',
+  'screenTester.deadPixelIntro':
+      'Se mostrarán colores a pantalla completa. Observa los píxeles que permanezcan encendidos o apagados.',
+  'screenTester.deadPixelIntroTitle': 'Detección de píxeles muertos',
+  'screenTester.deadPixelProgress': 'Color {index} de {total}',
+  'screenTester.deadPixelStart': 'Iniciar prueba',
+  'screenTester.gradientSweep': 'Barrido de degradado',
+  'screenTester.grayRamp': 'Rampa de grises',
+  'screenTester.maxTouches': 'Máx. {count}',
+  'screenTester.mode.deadPixel': 'Píxel muerto',
+  'screenTester.mode.gradient': 'Degradado',
+  'screenTester.mode.solid': 'Sólido',
+  'screenTester.mode.touch': 'Táctil',
+  'screenTester.touches': '{count} tocando',
+  'screenTester.touchHint': 'Usa varios dedos para probar el multitáctil.',
+
+  // Settings
+  'settings.appearance': 'Apariencia',
+  'settings.languageSystem': 'Predeterminado del sistema',
+
+  // Speed test
+  'speedTest.avgLatency': 'Media {value} ms',
+  'speedTest.best': 'Mejor',
+  'speedTest.cancel': 'Cancelar',
+  'speedTest.disclaimer':
+      'Los resultados dependen de tu conexión y de los servidores públicos usados.',
+  'speedTest.download': 'Descarga',
+  'speedTest.error.failed': 'Prueba fallida: {detail}',
+  'speedTest.error.offline': 'Sin conexión de red ({detail})',
+  'speedTest.error.timeout': 'La prueba agotó el tiempo.',
+  'speedTest.intro': 'Mide tu conexión',
+  'speedTest.introHint':
+      'Ejecuta pruebas de latencia, descarga y subida contra servidores públicos.',
+  'speedTest.jitter': 'Jitter',
+  'speedTest.latency': 'Latencia',
+  'speedTest.peak': 'Pico {value} Mbps',
+  'speedTest.phase.download': 'Descargando…',
+  'speedTest.phase.ping': 'Midiendo latencia…',
+  'speedTest.phase.upload': 'Subiendo…',
+  'speedTest.rerun': 'Repetir',
+  'speedTest.resultsTitle': 'Resultados',
+  'speedTest.start': 'Iniciar prueba',
+  'speedTest.upload': 'Subida',
+
+  // Testers hub
+  'testers.speedTest': 'Prueba de velocidad',
+  'testers.speedTestHint': 'Mide latencia y velocidad de descarga y subida',
+  'testers.torchTester': 'Prueba de linterna',
+  'testers.torchTesterHint': 'Enciende el LED y prueba patrones estroboscópicos',
+  'testers.vibrationTester': 'Prueba de vibración',
+  'testers.vibrationTesterHint': 'Vibraciones cortas, largas y con patrones',
+
+  // Thermal section
+  'thermal.zonesTitle': 'Zonas de temperatura',
+
+  // Torch tester
+  'torch.frequency': '{value} Hz',
+  'torch.hardwareMissingTitle': 'Sin flash',
+  'torch.reason.camera_error': 'La cámara informó un error.',
+  'torch.reason.failed': 'No se pudo encender la linterna.',
+  'torch.reason.torch_unavailable': 'Este dispositivo no tiene flash controlable.',
+  'torch.startStrobe': 'Iniciar estrobo',
+  'torch.stopStrobe': 'Detener estrobo',
+  'torch.strobe': 'Estrobo',
+  'torch.toggleOff': 'Apagado',
+  'torch.toggleOn': 'Encendido',
+
+  // Vibration tester
+  'vibration.amplitudeHint':
+      'El control de intensidad requiere Android 8.0+ con motor compatible.',
+  'vibration.ok': '¡Vibra!',
+  'vibration.reason.failed': 'Falló la vibración.',
+  'vibration.reason.invalid_args': 'Patrón no válido.',
+  'vibration.reason.permission_denied': 'Permiso de vibración denegado.',
+  'vibration.reason.unsupported': 'Sin motor de vibración en este dispositivo.',
+  'vibration.tapHint': 'Elige un patrón para sentirlo.',
+  'vibration.patternAmplitude': 'Onda de amplitud',
+  'vibration.patternDouble': 'Doble toque',
+  'vibration.patternLong': 'Largo',
+  'vibration.patternRamp': 'Rampa de pulso',
+  'vibration.patternShort': 'Corto',
 };

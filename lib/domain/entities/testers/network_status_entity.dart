@@ -56,6 +56,33 @@ class NetworkStatusEntity {
 
   bool get onWifi => transport == 'wifi';
 
+  /// Live BLE heartbeat reporting zero devices: resets the whole BLE
+  /// window so a running scan shows "scanning, 0 found" instead of
+  /// carrying stale link stats forward. [copyWith] cannot write nulls,
+  /// which is why this exists as an explicit reset.
+  NetworkStatusEntity clearBle() {
+    return NetworkStatusEntity(
+      connected: connected,
+      metered: metered,
+      transport: transport,
+      rssi: rssi,
+      linkSpeedMbps: linkSpeedMbps,
+      frequencyMhz: frequencyMhz,
+      ssid: ssid,
+      bssid: bssid,
+      ip: ip,
+      cellDbm: cellDbm,
+      cellLevel: cellLevel,
+      cellIsGsm: cellIsGsm,
+      dataConnected: dataConnected,
+      roaming: roaming,
+      networkType: networkType,
+      nfcPresent: nfcPresent,
+      nfcEnabled: nfcEnabled,
+      bleCount: 0,
+    );
+  }
+
   /// Null-tolerant merge helper for the radio-feed mapper: every field
   /// falls back to the current value when the argument is null.
   NetworkStatusEntity copyWith({

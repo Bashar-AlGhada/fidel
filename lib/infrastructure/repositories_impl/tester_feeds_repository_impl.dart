@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:rxdart/rxdart.dart';
 
 import '../../core/logging/app_logger.dart';
@@ -27,6 +28,12 @@ class TesterFeedsRepositoryImpl implements TesterFeedsRepository {
   final NetworkStatusMapper _networkStatusMapper;
   final NoiseLevelMapper _noiseLevelMapper;
   final GpsFixMapper _gpsFixMapper;
+
+  /// Cold-start guard for the network feed: a source that never emits
+  /// surfaces as a `feed_timeout` error instead of endless Loading. The
+  /// sink-based callback keeps the stream open and resets its countdown
+  /// on every event, so late frames still flow after a timeout fired.
+  static const Duration _feedTimeout = Duration(seconds: 5);
 
   BehaviorSubject<NoiseLevelEntity>? _noiseSubject;
   StreamSubscription<Map<String, dynamic>>? _noiseSub;
@@ -92,20 +99,48 @@ class TesterFeedsRepositoryImpl implements TesterFeedsRepository {
 
   void _ensureNetworkFeed() {
     if (_networkSub != null) return;
-    _networkSub = _datasource.networkEventsRaw().listen(
-      (event) {
-        final next = _networkStatusMapper.fromMap(
-          event,
-          previous: _lastNetwork,
+    _networkSub = _datasource
+        .networkEventsRaw()
+        .timeout(
+          _feedTimeout,
+          onTimeout: (EventSink<Map<String, dynamic>> sink) => sink.addError(
+            PlatformException(
+              code: 'feed_timeout',
+              message: 'Native feed did not produce data.',
+            ),
+          ),
+        )
+        .listen(
+          (event) {
+            // Native failure frames are intercepted before mapping so they
+            // surface as stream errors, never as entity updates.
+            if (event['kind'] == 'error') {
+              AppLog.warn(
+                'Network feed failed: ${event['code']} ${event['message']}',
+              );
+              final code = event['code'];
+              _networkSubject?.addError(
+                PlatformException(
+                  code: code is String && code.isNotEmpty
+                      ? code
+                      : 'network_error',
+                  message: event['message']?.toString(),
+                ),
+              );
+              return;
+            }
+            final next = _networkStatusMapper.fromMap(
+              event,
+              previous: _lastNetwork,
+            );
+            _lastNetwork = next;
+            _networkSubject?.add(next);
+          },
+          onError: (Object e, StackTrace st) {
+            AppLog.warn('Network feed error', error: e, stackTrace: st);
+            _networkSubject?.addError(e);
+          },
         );
-        _lastNetwork = next;
-        _networkSubject?.add(next);
-      },
-      onError: (Object e, StackTrace st) {
-        AppLog.warn('Network feed error', error: e, stackTrace: st);
-        _networkSubject?.addError(e);
-      },
-    );
   }
 
   void _stopNetworkFeed() {

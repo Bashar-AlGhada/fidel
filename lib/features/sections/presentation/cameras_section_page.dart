@@ -6,15 +6,27 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../application/providers/system_providers.dart';
 import '../../../core/logging/app_logger.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/theme_tokens.dart';
+import '../../../core/ui/app_card.dart';
 import '../../../core/ui/app_states.dart';
+import '../../../core/ui/filterable_entity_list.dart';
+import '../../../core/ui/severity_chip.dart';
+import '../../../core/ui/spec_row.dart';
+import '../../../core/ui/section_badges.dart';
 import '../../../domain/entities/info/info_section_entity.dart';
+import '../../../domain/units/measurement_formatter.dart';
 import '../../../features/export/presentation/export_flow.dart';
 import 'widgets/raw_payload.dart';
-import 'widgets/section_cards.dart';
 import 'widgets/section_items.dart';
 
 enum CameraFacingFilter { all, front, back, external }
+
+enum _CameraKind { logical, physical, unknown }
+
+/// Filter ids used by the [FilterableEntityList] chips.
+const _facingFilterIds = {'front', 'back'};
+const _kindFilterIds = {'logical', 'physical'};
 
 /// One parsed camera with everything the UI needs precomputed, so search
 /// and filtering never touch JSON again.
@@ -22,11 +34,13 @@ class _CameraEntry {
   const _CameraEntry({
     required this.data,
     required this.facing,
+    required this.kind,
     required this.search,
   });
 
   final Map<String, dynamic> data;
   final CameraFacingFilter facing;
+  final _CameraKind kind;
   final String search;
 }
 
@@ -39,7 +53,7 @@ class CamerasSectionPage extends ConsumerStatefulWidget {
 
 class _CamerasSectionPageState extends ConsumerState<CamerasSectionPage> {
   String _query = '';
-  CameraFacingFilter _filter = CameraFacingFilter.all;
+  Set<String> _selectedFilters = {'all'};
 
   InfoSectionEntity? _parsedSource;
   List<_CameraEntry> _entries = const [];
@@ -82,101 +96,102 @@ class _CamerasSectionPageState extends ConsumerState<CamerasSectionPage> {
     }
     final entries = _entries;
 
-    final totalCount = entries.length;
-    final frontCount = entries
-        .where((e) => e.facing == CameraFacingFilter.front)
-        .length;
-    final backCount = entries
-        .where((e) => e.facing == CameraFacingFilter.back)
-        .length;
-    final externalCount = entries
-        .where((e) => e.facing == CameraFacingFilter.external)
-        .length;
+    final logicalCount =
+        entries.where((e) => e.kind == _CameraKind.logical).length;
+    final physicalCount =
+        entries.where((e) => e.kind == _CameraKind.physical).length;
 
-    final tokens = Theme.of(context).extension<ThemeTokensExtension>()!.tokens;
     final query = _query.trim().toLowerCase();
-    final filtered = entries
-        .where((entry) {
-          if (_filter != CameraFacingFilter.all && entry.facing != _filter) {
-            return false;
-          }
-          return query.isEmpty || entry.search.contains(query);
-        })
-        .toList(growable: false);
+    final selectedFacings = _selectedFilters.intersection(_facingFilterIds);
+    final selectedKinds = _selectedFilters.intersection(_kindFilterIds);
+
+    final filtered = entries.where((entry) {
+      if (selectedFacings.isNotEmpty &&
+          !_matchesFacing(selectedFacings, entry.facing)) {
+        return false;
+      }
+      if (selectedKinds.isNotEmpty && !_matchesKind(selectedKinds, entry.kind)) {
+        return false;
+      }
+      return query.isEmpty || entry.search.contains(query);
+    }).toList(growable: false);
+
+    final hasActiveQuery =
+        query.isNotEmpty || !_selectedFilters.contains('all');
 
     return RefreshIndicator(
       onRefresh: () =>
           ref.read(getSectionMetadataProvider)('cameras', forceRefresh: true),
-      child: ListView(
-        padding: EdgeInsets.all(tokens.space2),
-        children: [
-          Card(
-            child: Padding(
-              padding: EdgeInsets.all(tokens.space2),
-              child: Wrap(
-                spacing: tokens.space2,
-                runSpacing: tokens.space1,
-                children: [
-                  SectionSummaryBadge(
-                    label: 'summary.total'.tr,
-                    value: '$totalCount',
-                  ),
-                  SectionSummaryBadge(
-                    label: 'summary.front'.tr,
-                    value: '$frontCount',
-                  ),
-                  SectionSummaryBadge(
-                    label: 'summary.back'.tr,
-                    value: '$backCount',
-                  ),
-                  SectionSummaryBadge(
-                    label: 'summary.external'.tr,
-                    value: '$externalCount',
-                  ),
-                ],
-              ),
+      child: Padding(
+        padding: EdgeInsets.all(context.tokens.space2),
+        child: FilterableEntityList(
+          searchHint: 'search.hintCameras'.tr,
+          searchQuery: _query,
+          onSearchChanged: (v) => setState(() => _query = v),
+          filters: [
+            ('all', 'filter.all'.tr),
+            ('front', 'filter.front'.tr),
+            ('back', 'filter.back'.tr),
+            ('logical', 'camera.logical'.tr),
+            ('physical', 'camera.physical'.tr),
+          ],
+          selectedFilters: _selectedFilters,
+          onToggleFilter: _toggleFilter,
+          summaryBadges: [
+            SectionSummaryBadge(
+              label: 'summary.lenses'.tr,
+              value: '${entries.length}',
             ),
-          ),
-          SizedBox(height: tokens.space2),
-          TextField(
-            decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: query.isEmpty
-                  ? null
-                  : IconButton(
-                      icon: const Icon(Icons.clear),
-                      tooltip: 'action.clear'.tr,
-                      onPressed: () => setState(() => _query = ''),
-                    ),
-              hintText: 'search.hintCameras'.tr,
-              border: const OutlineInputBorder(),
+            SectionSummaryBadge(
+              label: 'summary.logical'.tr,
+              value: '$logicalCount',
             ),
-            onChanged: (v) => setState(() => _query = v),
+            SectionSummaryBadge(
+              label: 'summary.physical'.tr,
+              value: '$physicalCount',
+            ),
+          ],
+          hasActiveQuery: hasActiveQuery,
+          emptyState: AppEmptyState(
+            title: 'camera.empty'.tr,
+            icon: Icons.photo_camera_outlined,
           ),
-          SizedBox(height: tokens.space2),
-          Wrap(
-            spacing: tokens.space1,
-            runSpacing: tokens.space1,
-            children: [
-              for (final filter in CameraFacingFilter.values)
-                SectionFilterChip(
-                  selected: _filter == filter,
-                  label: 'filter.${filter.name}'.tr,
-                  onTap: () => setState(() => _filter = filter),
-                ),
-            ],
+          noResultsState: AppEmptyState(
+            title: 'search.noResults'.tr,
+            icon: Icons.search_off_outlined,
           ),
-          SizedBox(height: tokens.space2),
-          if (filtered.isEmpty)
-            AppEmptyState(
-              title: 'search.noResults'.tr,
-              icon: Icons.search_off_outlined,
-            )
-          else
-            ...filtered.map((entry) => _CameraCard(camera: entry.data)),
-        ],
+          itemCount: filtered.length,
+          itemBuilder: (context, index) =>
+              _CameraCard(camera: filtered[index].data),
+        ),
       ),
     );
+  }
+
+  bool _matchesFacing(Set<String> selected, CameraFacingFilter facing) =>
+      switch (facing) {
+        CameraFacingFilter.front => selected.contains('front'),
+        CameraFacingFilter.back => selected.contains('back'),
+        _ => !selected.contains('front') && !selected.contains('back'),
+      };
+
+  bool _matchesKind(Set<String> selected, _CameraKind kind) => switch (kind) {
+        _CameraKind.logical => selected.contains('logical'),
+        _CameraKind.physical => selected.contains('physical'),
+        _CameraKind.unknown =>
+          !selected.contains('logical') && !selected.contains('physical'),
+      };
+
+  void _toggleFilter(String id) {
+    setState(() {
+      if (id == 'all') {
+        _selectedFilters = {'all'};
+        return;
+      }
+      final next = {..._selectedFilters}..remove('all');
+      next.contains(id) ? next.remove(id) : next.add(id);
+      _selectedFilters = next.isEmpty ? {'all'} : next;
+    });
   }
 
   List<_CameraEntry> _parseEntries(InfoSectionEntity section) {
@@ -206,13 +221,16 @@ class _CamerasSectionPageState extends ConsumerState<CamerasSectionPage> {
         _CameraEntry(
           data: map,
           facing: _resolveFacing(map),
+          kind: _resolveKind(map),
           search: searchablePayload(map),
         ),
     ];
   }
 
   CameraFacingFilter _resolveFacing(Map<String, dynamic> camera) {
-    final label = camera['lensFacingString']?.toString().toLowerCase();
+    final label = (camera['lensFacingString'] ?? camera['facing'])
+        ?.toString()
+        .toLowerCase();
     if (label != null && label.isNotEmpty) {
       if (label.contains('front')) return CameraFacingFilter.front;
       if (label.contains('back') || label.contains('rear')) {
@@ -222,8 +240,7 @@ class _CamerasSectionPageState extends ConsumerState<CamerasSectionPage> {
     }
 
     // CameraCharacteristics.LENS_FACING_BACK = 0, FRONT = 1
-    final rawValue =
-        camera['lensFacing'] ?? camera['facing'] ?? camera['lens_facing'];
+    final rawValue = camera['lensFacing'] ?? camera['lens_facing'];
     if (rawValue is num) {
       return switch (rawValue.toInt()) {
         0 => CameraFacingFilter.back,
@@ -234,6 +251,20 @@ class _CamerasSectionPageState extends ConsumerState<CamerasSectionPage> {
 
     return CameraFacingFilter.external;
   }
+
+  _CameraKind _resolveKind(Map<String, dynamic> camera) {
+    final deviceKind = camera['deviceKind']?.toString().toLowerCase();
+    if (deviceKind == 'logical') return _CameraKind.logical;
+    if (deviceKind == 'physical') return _CameraKind.physical;
+
+    // Fallbacks for payloads predating deviceKind.
+    if (camera['parentLogicalId'] != null) return _CameraKind.physical;
+    final physicalIds = camera['physicalCameraIds'];
+    if (physicalIds is List && physicalIds.isNotEmpty) {
+      return _CameraKind.logical;
+    }
+    return _CameraKind.unknown;
+  }
 }
 
 class _CameraCard extends StatelessWidget {
@@ -243,59 +274,160 @@ class _CameraCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = Theme.of(context).extension<ThemeTokensExtension>()!.tokens;
-    final id = (camera['cameraId'] ?? camera['id'] ?? camera['name'])
+    final theme = Theme.of(context);
+    final tokens = context.tokens;
+
+    final id = (camera['id'] ?? camera['cameraId'] ?? camera['name'])
         ?.toString();
-    final title = id == null || id.isEmpty
-        ? 'camera.unnamed'.tr
-        : 'camera.title'.trParams({'id': id});
-    final facing =
-        (camera['lensFacingString'] ?? camera['lensFacing'] ?? camera['facing'])
-            ?.toString();
-    final level = camera['hardwareLevel']?.toString();
-    final focal = _numString(
-      camera['focalLengthsMm'] ?? camera['focalLengths'],
-    );
-    final apertures = _numString(camera['apertures']);
-    final physicalIds = _listSummary(camera['physicalCameraIds']);
+    final isPhysical = camera['deviceKind']?.toString() == 'physical' ||
+        (camera['deviceKind'] == null && camera['parentLogicalId'] != null);
+
+    final facingLabel = _facingLabel(camera);
+    final focalMm = _doubleList(camera['focalLengthsMm'] ?? camera['focalLengths']);
+    final aperturesF = _doubleList(camera['aperturesF'] ?? camera['apertures']);
+    final pixelX = _intOf(camera['pixelCountX']);
+    final pixelY = _intOf(camera['pixelCountY']);
+    final sensorW = _doubleOf(camera['physicalSizeWidthMm']);
+    final sensorH = _doubleOf(camera['physicalSizeHeightMm']);
+    final orientation = _doubleOf(camera['orientationDeg']);
+    final hardwareLevel = camera['hardwareLevel']?.toString();
+    final parentLogicalId = camera['parentLogicalId']?.toString();
     final capabilities = _listSummary(camera['capabilities']);
-    final outputs = _outputsSummary(camera['outputs']);
+    final physicalIds = _listSummary(camera['physicalCameraIds']);
+
+    // Legacy extras kept for older payloads.
     final fpsRanges = _fpsSummary(camera['fpsRanges']);
+    final outputs = _outputsSummary(camera['outputs']);
     final hasFlash = camera['hasFlash']?.toString();
 
-    return Card(
-      child: ExpansionTile(
-        title: Text(title),
-        subtitle: Text(facing ?? 'camera.unknownFacing'.tr),
+    String? titleSummary;
+    final summaryParts = <String>[
+      if (focalMm.isNotEmpty) formatMeasurement(focalMm.first, unit: 'mm'),
+      if (aperturesF.isNotEmpty) 'ƒ/${_compact(aperturesF.first)}',
+      if (pixelX != null && pixelY != null)
+        formatMeasurement(pixelX * pixelY / 1e6, unit: 'MP'),
+    ];
+    if (summaryParts.isNotEmpty) titleSummary = summaryParts.join(' • ');
+
+    return AppCard(
+      padding: EdgeInsets.all(tokens.space2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-              tokens.space2,
-              0,
-              tokens.space2,
-              tokens.space2,
-            ),
-            child: Column(
-              children: [
-                SpecRow(label: 'camera.facing'.tr, value: facing),
-                SpecRow(label: 'camera.hardwareLevel'.tr, value: level),
-                SpecRow(label: 'camera.focalLengths'.tr, value: focal),
-                SpecRow(label: 'camera.apertures'.tr, value: apertures),
-                SpecRow(label: 'camera.fpsRanges'.tr, value: fpsRanges),
-                SpecRow(label: 'camera.outputs'.tr, value: outputs),
-                SpecRow(label: 'camera.flash'.tr, value: hasFlash),
-                SpecRow(label: 'camera.physicalIds'.tr, value: physicalIds),
-                SpecRow(label: 'camera.capabilities'.tr, value: capabilities),
-                ExpansionTile(
-                  tilePadding: EdgeInsets.zero,
-                  childrenPadding: EdgeInsets.zero,
-                  title: Text('camera.rawPayload'.tr),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: tokens.space4 + 8,
+                height: tokens.space4 + 8,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(tokens.radiusMd),
+                ),
+                child: Icon(
+                  isPhysical ? Icons.center_focus_strong : Icons.photo_camera,
+                  size: 20,
+                  color: theme.colorScheme.onPrimaryContainer,
+                ),
+              ),
+              SizedBox(width: tokens.space2),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: SelectableText(prettyJson(camera)),
+                    Text(
+                      facingLabel,
+                      style: theme.textTheme.titleMedium,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
+                    if (titleSummary != null)
+                      Text(
+                        titleSummary,
+                        style: AppText.muted(context),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    if (id != null && id.isNotEmpty && id != facingLabel)
+                      Text(
+                        id,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                   ],
+                ),
+              ),
+              SizedBox(width: tokens.space1),
+              SeverityChip(
+                dot: false,
+                level:
+                    isPhysical ? SeverityLevel.success : SeverityLevel.info,
+                label: isPhysical
+                    ? 'camera.physical'.tr
+                    : 'camera.logical'.tr,
+              ),
+            ],
+          ),
+          SizedBox(height: tokens.space2),
+          SpecRow(
+            label: 'camera.resolution'.tr,
+            value: pixelX == null || pixelY == null
+                ? null
+                : '$pixelX × $pixelY • '
+                    '${formatMeasurement(pixelX * pixelY / 1e6, unit: 'MP')}',
+            numeric: true,
+          ),
+          SpecRow(
+            label: 'camera.apertures'.tr,
+            value: aperturesF.isEmpty
+                ? null
+                : aperturesF.map((a) => 'ƒ/${_compact(a)}').join(', '),
+            numeric: true,
+          ),
+          SpecRow(
+            label: 'camera.focalLengths'.tr,
+            value: focalMm.isEmpty
+                ? null
+                : focalMm.map((f) => formatMeasurement(f, unit: 'mm')).join(', '),
+            numeric: true,
+          ),
+          SpecRow(
+            label: 'camera.sensorSize'.tr,
+            value: sensorW == null || sensorH == null
+                ? null
+                : '${formatMeasurement(sensorW)} × ${formatMeasurement(sensorH)} mm',
+            numeric: true,
+          ),
+          SpecRow(
+            label: 'camera.orientation'.tr,
+            value:
+                orientation == null ? null : formatMeasurement(orientation, unit: '°'),
+            numeric: true,
+          ),
+          SpecRow(label: 'camera.hardwareLevel'.tr, value: hardwareLevel),
+          SpecRow(label: 'camera.fpsRanges'.tr, value: fpsRanges),
+          SpecRow(label: 'camera.outputs'.tr, value: outputs),
+          SpecRow(label: 'camera.flash'.tr, value: hasFlash),
+          if (isPhysical && parentLogicalId != null)
+            SpecRow(
+              label: 'camera.parentLogical'.tr,
+              value: parentLogicalId,
+            ),
+          SpecRow(label: 'camera.physicalIds'.tr, value: physicalIds),
+          SpecRow(label: 'camera.capabilities'.tr, value: capabilities),
+          Theme(
+            data: theme.copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              childrenPadding: EdgeInsets.zero,
+              title: Text('camera.rawPayload'.tr),
+              children: [
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: SelectableText(prettyJson(camera)),
                 ),
               ],
             ),
@@ -305,6 +437,64 @@ class _CameraCard extends StatelessWidget {
     );
   }
 
+  String _facingLabel(Map<String, dynamic> camera) {
+    final raw = (camera['lensFacingString'] ??
+            camera['lensFacing'] ??
+            camera['facing'])
+        ?.toString()
+        .trim();
+    final lower = raw?.toLowerCase() ?? '';
+    if (lower.startsWith('front')) return 'filter.front'.tr;
+    if (lower.startsWith('back') ||
+        lower.startsWith('rear') ||
+        lower == '0') {
+      return 'filter.back'.tr;
+    }
+    if (lower.startsWith('external')) return 'filter.external'.tr;
+    if (lower == '1') return 'filter.front'.tr;
+    return raw == null || raw.isEmpty
+        ? 'camera.unnamed'.tr
+        : _humanize(raw);
+  }
+
+  String _humanize(String raw) => raw
+      .replaceAll(RegExp(r'[_-]+'), ' ')
+      .split(' ')
+      .where((p) => p.isNotEmpty)
+      .map((p) => '${p[0].toUpperCase()}${p.substring(1)}')
+      .join(' ');
+
+  List<double> _doubleList(Object? value) {
+    if (value is! List) {
+      final single = _doubleOf(value);
+      return single == null ? const [] : [single];
+    }
+    return [
+      for (final v in value)
+        if (v is num && v.isFinite) v.toDouble(),
+    ];
+  }
+
+  double? _doubleOf(Object? value) {
+    final d = switch (value) {
+      num v => v.toDouble(),
+      String v => double.tryParse(v),
+      _ => null,
+    };
+    return d == null || d.isNaN || d.isInfinite ? null : d;
+  }
+
+  int? _intOf(Object? value) {
+    final d = _doubleOf(value);
+    return d?.round();
+  }
+
+  String _compact(num value) => value
+      .toDouble()
+      .toStringAsFixed(2)
+      .replaceFirst(RegExp(r'0+$'), '')
+      .replaceFirst(RegExp(r'\.$'), '');
+
   String? _listSummary(Object? value) {
     if (value is! List) return value?.toString();
     final values = value.map((e) => e.toString()).where((e) => e.isNotEmpty);
@@ -312,53 +502,28 @@ class _CameraCard extends StatelessWidget {
     return joined.isEmpty ? null : joined;
   }
 
-  String? _numString(Object? value) {
-    if (value is List) {
-      final parts = value
-          .whereType<num>()
-          .map(_compactNumber)
-          .toList(growable: false);
-      return parts.isEmpty ? null : parts.join(', ');
-    }
-    return value?.toString();
-  }
-
   String? _outputsSummary(Object? value) {
     if (value is! List) return value?.toString();
-    final entries = value
-        .whereType<Map>()
-        .map((entry) {
-          final map = entry.cast<String, dynamic>();
-          final sizes = map['sizes'];
-          final count = sizes is List ? sizes.length : 0;
-          final format = map['format']?.toString() ?? '?';
-          return '$format($count)';
-        })
-        .toList(growable: false);
+    final entries = value.whereType<Map>().map((entry) {
+      final map = entry.cast<String, dynamic>();
+      final sizes = map['sizes'];
+      final count = sizes is List ? sizes.length : 0;
+      final format = map['format']?.toString() ?? '?';
+      return '$format($count)';
+    }).toList(growable: false);
     if (entries.isEmpty) return null;
     return entries.join(', ');
   }
 
   String? _fpsSummary(Object? value) {
     if (value is! List) return value?.toString();
-    final ranges = value
-        .whereType<Map>()
-        .map((entry) {
-          final min = entry['min'];
-          final max = entry['max'];
-          if (min == null || max == null) return null;
-          return '$min-$max';
-        })
-        .whereType<String>()
-        .toList(growable: false);
+    final ranges = value.whereType<Map>().map((entry) {
+      final min = entry['min'];
+      final max = entry['max'];
+      if (min == null || max == null) return null;
+      return '$min-$max';
+    }).whereType<String>().toList(growable: false);
     if (ranges.isEmpty) return null;
     return ranges.join(', ');
-  }
-
-  String _compactNumber(num value) {
-    return value
-        .toStringAsFixed(2)
-        .replaceFirst(RegExp(r'0+$'), '')
-        .replaceFirst(RegExp(r'\.$'), '');
   }
 }

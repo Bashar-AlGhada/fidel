@@ -5,12 +5,17 @@ import 'package:get/get.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../application/providers/units_providers.dart';
+import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/theme_tokens.dart';
+import '../../../../core/ui/app_card.dart';
+import '../../../../core/ui/glass_card.dart';
+import '../../../../core/ui/severity_chip.dart';
 import '../../../../core/ui/smart_data_display.dart';
 import '../../../../domain/entities/info/info_availability.dart';
 import '../../../../domain/entities/info/info_item_entity.dart';
 import '../../../../domain/entities/info/info_item_value.dart';
 import '../../../../domain/entities/info/info_section_entity.dart';
+import '../../../../domain/units/measurement_formatter.dart';
 import '../../../../domain/units/unit_preferences.dart';
 import '../../../../domain/units/units_formatter.dart';
 
@@ -21,24 +26,23 @@ class InfoSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tokens = Theme.of(context).extension<ThemeTokensExtension>()!.tokens;
+    final tokens = context.tokens;
     final items = section.items;
     final prefs = ref
         .watch(unitPreferencesStreamProvider)
         .maybeWhen(data: (p) => p, orElse: () => UnitPreferences.defaults);
     final formatter = ref.watch(unitsFormatterProvider);
 
-    return ListView.separated(
-      padding: EdgeInsets.all(tokens.space2),
-      itemCount: items.isEmpty ? 1 : items.length + 1,
-      separatorBuilder: (context, index) => SizedBox(height: tokens.space2),
-      itemBuilder: (context, index) {
-        if (index == 0) {
-          return _AvailabilityCard(availability: section.availability);
-        }
-        final item = items[index - 1];
-        return _InfoItemCard(item: item, prefs: prefs, formatter: formatter);
-      },
+    // Runs inside the page's outer scrollable; no own ListView here.
+    return Column(
+      children: [
+        _AvailabilityCard(availability: section.availability),
+        SizedBox(height: tokens.space2),
+        for (final item in items) ...[
+          _InfoItemCard(item: item, prefs: prefs, formatter: formatter),
+          SizedBox(height: tokens.space2),
+        ],
+      ],
     );
   }
 }
@@ -51,37 +55,67 @@ class _AvailabilityCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final tokens = theme.extension<ThemeTokensExtension>()!.tokens;
-    final (icon, textKey, color) = switch (availability) {
+    final tokens = context.tokens;
+    final (icon, textKey, color, level) = switch (availability) {
       InfoAvailability.available => (
-        Icons.check_circle,
-        'availability.available',
-        tokens.successColor,
-      ),
+          Icons.check_circle,
+          'availability.available',
+          tokens.successColor,
+          SeverityLevel.success,
+        ),
       InfoAvailability.unavailable => (
-        Icons.warning_amber,
-        'availability.unavailable',
-        tokens.warningColor,
-      ),
+          Icons.warning_amber,
+          'availability.unavailable',
+          tokens.warningColor,
+          SeverityLevel.warning,
+        ),
       InfoAvailability.notSupported => (
-        Icons.block,
-        'availability.notSupported',
-        tokens.dangerColor,
-      ),
+          Icons.block,
+          'availability.notSupported',
+          tokens.dangerColor,
+          SeverityLevel.danger,
+        ),
       InfoAvailability.restricted => (
-        Icons.lock,
-        'availability.restricted',
-        tokens.warningColor,
-      ),
+          Icons.lock,
+          'availability.restricted',
+          tokens.warningColor,
+          SeverityLevel.warning,
+        ),
     };
 
-    return Card(
-      child: ListTile(
-        leading: Icon(icon, color: color),
-        title: Text(textKey.tr, style: theme.textTheme.titleMedium),
-        subtitle: availability == InfoAvailability.available
-            ? Text('availability.availableHint'.tr)
-            : Text('availability.unavailableHint'.tr),
+    return GlassCard(
+      gradientTint: availability == InfoAvailability.available,
+      padding: EdgeInsets.all(tokens.space3),
+      child: Row(
+        children: [
+          Container(
+            width: tokens.space4 + 4,
+            height: tokens.space4 + 4,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(tokens.radiusMd),
+            ),
+            child: Icon(icon, size: 22, color: color),
+          ),
+          SizedBox(width: tokens.space3),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(textKey.tr, style: theme.textTheme.titleMedium),
+                SizedBox(height: tokens.space1 / 2),
+                Text(
+                  availability == InfoAvailability.available
+                      ? 'availability.availableHint'.tr
+                      : 'availability.unavailableHint'.tr,
+                  style: AppText.muted(context),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: tokens.space2),
+          SeverityChip(level: level, dot: false, label: textKey.tr),
+        ],
       ),
     );
   }
@@ -100,64 +134,94 @@ class _InfoItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (valueText, valueStyle) = _renderValue(context, item);
-    final availabilityText = item.availability == InfoAvailability.available
-        ? null
-        : _availabilityLabel(item.availability);
+    final theme = Theme.of(context);
+    final tokens = context.tokens;
+    final available = item.availability == InfoAvailability.available;
+    final rawText = item.value?.kind == InfoItemValueKind.text
+        ? (item.value?.text ?? '')
+        : null;
+    final formatted =
+        rawText == null ? null : _formatTextValue(item.labelKey, rawText);
+    final valueStyle = formatted != null
+        ? AppText.numeric(context)
+        : theme.textTheme.bodyMedium;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        child: ListTile(
-          title: Text(item.labelKey.tr),
-          subtitle: valueText == null
-              ? Text(availabilityText ?? 'availability.unavailable'.tr)
-              : _buildSubtitle(valueText, valueStyle),
-          trailing: availabilityText == null
-              ? null
-              : Text(
-                  availabilityText,
-                  style: Theme.of(context).textTheme.labelMedium,
+    return AppCard(
+      padding: EdgeInsets.symmetric(
+        horizontal: tokens.space3,
+        vertical: tokens.space2,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  item.labelKey.tr,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    letterSpacing: 0.3,
+                  ),
                 ),
-        ),
+              ),
+              if (!available)
+                Text(
+                  _availabilityLabel(item.availability),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+            ],
+          ),
+          SizedBox(height: tokens.space1 / 2 + 2),
+          if (!available)
+            Text(
+              'availability.unavailable'.tr,
+              style: AppText.muted(context).copyWith(
+                fontStyle: FontStyle.italic,
+              ),
+            )
+          else
+            _buildValue(context, item, formatted, valueStyle),
+        ],
       ),
     );
   }
 
-  Widget _buildSubtitle(String valueText, TextStyle? valueStyle) {
-    final trimmed = valueText.trim();
-    if (!(trimmed.startsWith('{') || trimmed.startsWith('['))) {
-      return Text(valueText, style: valueStyle);
-    }
-    final decoded = _decodeJson(trimmed);
-    if (decoded == null) {
-      return Text(valueText, style: valueStyle);
-    }
-    return SmartDataDisplay(data: decoded);
-  }
-
-  (String?, TextStyle?) _renderValue(
+  Widget _buildValue(
     BuildContext context,
     InfoItemEntity item,
+    String? formatted,
+    TextStyle? fallbackStyle,
   ) {
-    final theme = Theme.of(context);
-    final value = item.value;
-    if (value == null) return (null, null);
-    return switch (value.kind) {
-      InfoItemValueKind.text => (
-        _formatTextValue(item.labelKey, value.text ?? '') ?? (value.text ?? ''),
-        theme.textTheme.bodyMedium,
-      ),
-      InfoItemValueKind.redacted => (
-        'value.redacted'.tr,
-        theme.textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic),
-      ),
-      InfoItemValueKind.hidden => (
-        'value.hidden'.tr,
-        theme.textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic),
-      ),
-    };
+    switch (item.value?.kind) {
+      case InfoItemValueKind.redacted:
+      case InfoItemValueKind.hidden:
+        final style = Theme.of(context).textTheme.bodyMedium?.copyWith(
+              fontStyle: FontStyle.italic,
+            );
+        final text = item.value?.kind == InfoItemValueKind.redacted
+            ? 'value.redacted'.tr
+            : 'value.hidden'.tr;
+        return Text(text, style: style);
+      default:
+        break;
+    }
+
+    final effective = formatted ?? rawTextOf(item);
+    final trimmed = effective.trim();
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+      final decoded = _decodeJson(trimmed);
+      if (decoded != null) return SmartDataDisplay(data: decoded);
+    }
+    return Text(effective, style: fallbackStyle);
   }
+
+  String rawTextOf(InfoItemEntity item) =>
+      item.value?.kind == InfoItemValueKind.text ? (item.value?.text ?? '') : '';
 
   String? _formatTextValue(String labelKey, String raw) {
     if (raw.trim().isEmpty) return null;
@@ -187,8 +251,20 @@ class _InfoItemCard extends StatelessWidget {
       if (ua == null) return null;
       return formatter.formatElectricCurrent(microAmps: ua);
     }
+    // Plain measured numbers (px, dpi, densities) go through the shared
+    // measurement formatter for consistent rendering.
+    if (_isPlainMetricLabel(labelKey)) {
+      final n = double.tryParse(raw);
+      if (n != null && n.isFinite) return formatMeasurement(n);
+    }
     return null;
   }
+
+  bool _isPlainMetricLabel(String labelKey) =>
+      labelKey.endsWith('Px') ||
+      labelKey.endsWith('Dpi') ||
+      labelKey == 'display.density' ||
+      labelKey == 'display.scaledDensity';
 
   Object? _decodeJson(String raw) {
     try {

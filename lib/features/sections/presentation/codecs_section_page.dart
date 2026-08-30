@@ -6,12 +6,17 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../application/providers/system_providers.dart';
 import '../../../core/logging/app_logger.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/theme_tokens.dart';
+import '../../../core/ui/app_card.dart';
 import '../../../core/ui/app_states.dart';
+import '../../../core/ui/filterable_entity_list.dart';
+import '../../../core/ui/severity_chip.dart';
+import '../../../core/ui/spec_row.dart';
+import '../../../core/ui/section_badges.dart';
 import '../../../domain/entities/info/info_section_entity.dart';
 import '../../../features/export/presentation/export_flow.dart';
 import 'widgets/raw_payload.dart';
-import 'widgets/section_cards.dart';
 import 'widgets/section_items.dart';
 
 enum CodecFilter { all, encoders, decoders }
@@ -93,83 +98,60 @@ class _CodecsSectionPageState extends ConsumerState<CodecsSectionPage> {
     final encodersCount = entries.where((e) => e.isEncoder).length;
     final decodersCount = entries.length - encodersCount;
 
-    final tokens = Theme.of(context).extension<ThemeTokensExtension>()!.tokens;
     final query = _query.trim().toLowerCase();
-    final filtered = entries
-        .where((entry) {
-          if (_filter == CodecFilter.encoders && !entry.isEncoder) return false;
-          if (_filter == CodecFilter.decoders && entry.isEncoder) return false;
-          return query.isEmpty || entry.search.contains(query);
-        })
-        .toList(growable: false);
+    final filtered = entries.where((entry) {
+      if (_filter == CodecFilter.encoders && !entry.isEncoder) return false;
+      if (_filter == CodecFilter.decoders && entry.isEncoder) return false;
+      return query.isEmpty || entry.search.contains(query);
+    }).toList(growable: false);
 
     return RefreshIndicator(
       onRefresh: () =>
           ref.read(getSectionMetadataProvider)('codecs', forceRefresh: true),
-      child: ListView(
-        padding: EdgeInsets.all(tokens.space2),
-        children: [
-          Card(
-            child: Padding(
-              padding: EdgeInsets.all(tokens.space2),
-              child: Wrap(
-                spacing: tokens.space2,
-                runSpacing: tokens.space1,
-                children: [
-                  SectionSummaryBadge(
-                    label: 'summary.total'.tr,
-                    value: '${entries.length}',
-                  ),
-                  SectionSummaryBadge(
-                    label: 'summary.encoders'.tr,
-                    value: '$encodersCount',
-                  ),
-                  SectionSummaryBadge(
-                    label: 'summary.decoders'.tr,
-                    value: '$decodersCount',
-                  ),
-                ],
-              ),
+      child: Padding(
+        padding: EdgeInsets.all(context.tokens.space2),
+        child: FilterableEntityList(
+          searchHint: 'search.hintCodecs'.tr,
+          searchQuery: _query,
+          onSearchChanged: (v) => setState(() => _query = v),
+          filters: [
+            ('all', 'filter.all'.tr),
+            ('encoders', 'filter.encoders'.tr),
+            ('decoders', 'filter.decoders'.tr),
+          ],
+          selectedFilters: {_filter.name},
+          onToggleFilter: (id) => setState(
+            () => _filter =
+                CodecFilter.values.firstWhere((f) => f.name == id),
+          ),
+          summaryBadges: [
+            SectionSummaryBadge(
+              label: 'summary.total'.tr,
+              value: '${entries.length}',
             ),
-          ),
-          SizedBox(height: tokens.space2),
-          TextField(
-            decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: query.isEmpty
-                  ? null
-                  : IconButton(
-                      icon: const Icon(Icons.clear),
-                      tooltip: 'action.clear'.tr,
-                      onPressed: () => setState(() => _query = ''),
-                    ),
-              hintText: 'search.hintCodecs'.tr,
-              border: const OutlineInputBorder(),
+            SectionSummaryBadge(
+              label: 'summary.encoders'.tr,
+              value: '$encodersCount',
             ),
-            onChanged: (v) => setState(() => _query = v),
+            SectionSummaryBadge(
+              label: 'summary.decoders'.tr,
+              value: '$decodersCount',
+            ),
+          ],
+          hasActiveQuery:
+              query.isNotEmpty || _filter != CodecFilter.all,
+          emptyState: AppEmptyState(
+            title: 'codec.empty'.tr,
+            icon: Icons.movie_filter_outlined,
           ),
-          SizedBox(height: tokens.space2),
-          Wrap(
-            spacing: tokens.space1,
-            runSpacing: tokens.space1,
-            children: [
-              for (final filter in CodecFilter.values)
-                SectionFilterChip(
-                  selected: _filter == filter,
-                  label: 'filter.${filter.name}'.tr,
-                  onTap: () => setState(() => _filter = filter),
-                ),
-            ],
+          noResultsState: AppEmptyState(
+            title: 'search.noResults'.tr,
+            icon: Icons.search_off_outlined,
           ),
-          SizedBox(height: tokens.space2),
-          if (filtered.isEmpty)
-            AppEmptyState(
-              title: 'search.noResults'.tr,
-              icon: Icons.search_off_outlined,
-            )
-          else
-            ...filtered.map((entry) => _CodecCard(codec: entry.data)),
-        ],
+          itemCount: filtered.length,
+          itemBuilder: (context, index) =>
+              _CodecCard(codec: filtered[index].data),
+        ),
       ),
     );
   }
@@ -214,46 +196,89 @@ class _CodecCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = Theme.of(context).extension<ThemeTokensExtension>()!.tokens;
+    final theme = Theme.of(context);
+    final tokens = context.tokens;
+
     final name = (codec['name'] ?? codec['codecName'] ?? codec['id'])
         ?.toString();
-    final typeLabel = _codecIsEncoder(codec)
-        ? 'filter.encoders'.tr
-        : 'filter.decoders'.tr;
+    final isEncoder = _codecIsEncoder(codec);
+    final typeLabel =
+        isEncoder ? 'filter.encoders'.tr : 'filter.decoders'.tr;
     final mimeTypes = _listSummary(codec['supportedTypes'] ?? codec['types']);
     final aliases = _listSummary(codec['aliases']);
-    final hardware = codec['isHardwareAccelerated']?.toString();
-    final software = codec['isSoftwareOnly']?.toString();
 
-    return Card(
-      child: ExpansionTile(
-        title: Text(name ?? 'codec.unnamed'.tr),
-        subtitle: Text(typeLabel),
+    return AppCard(
+      padding: EdgeInsets.all(tokens.space2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-              tokens.space2,
-              0,
-              tokens.space2,
-              tokens.space2,
-            ),
-            child: Column(
-              children: [
-                SpecRow(label: 'codec.type'.tr, value: typeLabel),
-                SpecRow(label: 'codec.mimeTypes'.tr, value: mimeTypes),
-                SpecRow(label: 'codec.aliases'.tr, value: aliases),
-                SpecRow(label: 'codec.hardwareAccelerated'.tr, value: hardware),
-                SpecRow(label: 'codec.softwareOnly'.tr, value: software),
-                ExpansionTile(
-                  tilePadding: EdgeInsets.zero,
-                  childrenPadding: EdgeInsets.zero,
-                  title: Text('camera.rawPayload'.tr),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: tokens.space4 + 8,
+                height: tokens.space4 + 8,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(tokens.radiusMd),
+                ),
+                child: Icon(
+                  isEncoder ? Icons.upload_outlined : Icons.download_outlined,
+                  size: 20,
+                  color: theme.colorScheme.onPrimaryContainer,
+                ),
+              ),
+              SizedBox(width: tokens.space2),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: SelectableText(prettyJson(codec)),
+                    Text(
+                      name ?? 'codec.unnamed'.tr,
+                      style: theme.textTheme.titleMedium,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
+                    if (mimeTypes != null)
+                      Text(
+                        mimeTypes,
+                        style: AppText.muted(context),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                   ],
+                ),
+              ),
+              SizedBox(width: tokens.space1),
+              SeverityChip(
+                dot: false,
+                level: isEncoder ? SeverityLevel.success : SeverityLevel.info,
+                label: typeLabel,
+              ),
+            ],
+          ),
+          SizedBox(height: tokens.space2),
+          SpecRow(label: 'codec.type'.tr, value: typeLabel),
+          SpecRow(label: 'codec.mimeTypes'.tr, value: mimeTypes),
+          SpecRow(label: 'codec.aliases'.tr, value: aliases),
+          SpecRow(
+            label: 'codec.hardwareAccelerated'.tr,
+            value: _boolLabel(codec['isHardwareAccelerated']),
+          ),
+          SpecRow(
+            label: 'codec.softwareOnly'.tr,
+            value: _boolLabel(codec['isSoftwareOnly']),
+          ),
+          Theme(
+            data: theme.copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              childrenPadding: EdgeInsets.zero,
+              title: Text('camera.rawPayload'.tr),
+              children: [
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: SelectableText(prettyJson(codec)),
                 ),
               ],
             ),
@@ -262,6 +287,12 @@ class _CodecCard extends StatelessWidget {
       ),
     );
   }
+
+  String? _boolLabel(Object? raw) => switch (raw?.toString()) {
+        'true' => 'common.yes'.tr,
+        'false' => 'common.no'.tr,
+        final other => other,
+      };
 
   String? _listSummary(Object? value) {
     if (value is! List) return value?.toString();

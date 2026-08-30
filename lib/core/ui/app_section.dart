@@ -9,6 +9,7 @@ class AppSection extends StatelessWidget {
     this.trailing,
     this.child,
     this.padding,
+    this.icon,
     super.key,
   });
 
@@ -17,6 +18,10 @@ class AppSection extends StatelessWidget {
   final Widget? trailing;
   final Widget? child;
   final EdgeInsetsGeometry? padding;
+
+  /// Optional small icon rendered in a primary-container badge before the
+  /// title.
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -30,6 +35,22 @@ class AppSection extends StatelessWidget {
         children: [
           Row(
             children: [
+              if (icon != null) ...[
+                Container(
+                  width: tokens.space4,
+                  height: tokens.space4,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(tokens.radiusSm),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 20,
+                    color: theme.colorScheme.onPrimaryContainer,
+                  ),
+                ),
+                SizedBox(width: tokens.space2),
+              ],
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

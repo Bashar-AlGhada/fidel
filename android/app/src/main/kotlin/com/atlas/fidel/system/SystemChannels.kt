@@ -1,7 +1,13 @@
 package com.atlas.fidel.system
 
 import android.content.Context
+import android.hardware.camera2.CameraAccessException
+import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CameraManager
 import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
@@ -77,8 +83,19 @@ class SystemChannels(private val context: Context) {
             }
             "setBleScanning" -> {
               val on = (call.arguments as? Map<*, *>)?.get("enabled") as? Boolean == true
-              networkEventsStreamHandler.setBleScanning(on)
-              result.success(null)
+              result.success(networkEventsStreamHandler.setBleScanning(on))
+            }
+            "testVibration" -> {
+              val args = call.arguments as? Map<*, *> ?: emptyMap<String, Any?>()
+              val patternMs = (args["patternMs"] as? List<*>)
+                ?.mapNotNull { (it as? Number)?.toInt() } ?: emptyList()
+              val amplitudes = (args["amplitudes"] as? List<*>)
+                ?.mapNotNull { (it as? Number)?.toInt() }
+              result.success(testVibration(patternMs, amplitudes))
+            }
+            "setTorch" -> {
+              val enabled = (call.arguments as? Map<*, *>)?.get("enabled") as? Boolean == true
+              result.success(setTorch(enabled))
             }
             else -> result.notImplemented()
           }
@@ -114,5 +131,74 @@ class SystemChannels(private val context: Context) {
     noiseEventsStreamHandler.stop()
     gnssEventsStreamHandler.stop()
     networkEventsStreamHandler.stop()
+  }
+
+  /** Vibration tester; returns `{ok, reason}` for the Dart caller. */
+  private fun testVibration(patternMs: List<Int>, amplitudes: List<Int>?): Map<String, Any?> {
+    if (patternMs.isEmpty()) return mapOf("ok" to false, "reason" to "invalid_args")
+
+    val vibrator = if (Build.VERSION.SDK_INT >= 31) {
+      (context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)
+        ?.defaultVibrator ?: return mapOf("ok" to false, "reason" to "unsupported")
+    } else {
+      @Suppress("DEPRECATION")
+      context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+        ?: return mapOf("ok" to false, "reason" to "unsupported")
+    }
+    if (!vibrator.hasVibrator()) return mapOf("ok" to false, "reason" to "unsupported")
+
+    return try {
+      if (patternMs.size == 1) {
+        vibrator.vibrate(patternMs[0].toLong())
+      } else {
+        // Amplitude control needs API 26; null amplitudes mean "default
+        // strength" inside createWaveform.
+        val resolved = amplitudes
+          ?.takeIf { Build.VERSION.SDK_INT >= 26 && it.size == patternMs.size }
+          ?.toIntArray()
+        vibrator.vibrate(
+          VibrationEffect.createWaveform(
+            patternMs.map { it.toLong() }.toLongArray(),
+            resolved,
+            -1,
+          )
+        )
+      }
+      mapOf("ok" to true, "reason" to null)
+    } catch (_: SecurityException) {
+      mapOf("ok" to false, "reason" to "permission_denied")
+    } catch (_: Exception) {
+      mapOf("ok" to false, "reason" to "unsupported")
+    }
+  }
+
+  /** Flashlight tester; returns `{ok, reason}` for the Dart caller. */
+  private fun setTorch(enabled: Boolean): Map<String, Any?> {
+    val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as? CameraManager
+      ?: return mapOf("ok" to false, "reason" to "torch_unavailable")
+
+    val flashCameraId = try {
+      cameraManager.cameraIdList.firstOrNull { id ->
+        try {
+          cameraManager.getCameraCharacteristics(id)
+            .get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
+        } catch (_: Exception) {
+          false
+        }
+      }
+    } catch (_: Exception) {
+      null
+    } ?: return mapOf("ok" to false, "reason" to "torch_unavailable")
+
+    return try {
+      cameraManager.setTorchMode(flashCameraId, enabled)
+      mapOf("ok" to true, "reason" to null)
+    } catch (_: CameraAccessException) {
+      mapOf("ok" to false, "reason" to "camera_error")
+    } catch (_: IllegalArgumentException) {
+      mapOf("ok" to false, "reason" to "torch_unavailable")
+    } catch (_: Exception) {
+      mapOf("ok" to false, "reason" to "camera_error")
+    }
   }
 }

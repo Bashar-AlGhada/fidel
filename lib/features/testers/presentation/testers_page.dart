@@ -59,6 +59,24 @@ class TestersPage extends StatelessWidget {
             titleKey: 'testers.cpuMonitor',
             subtitleKey: 'testers.cpuMonitorHint',
           ),
+          _TesterTile(
+            route: '/testers/vibration',
+            icon: Icons.vibration_outlined,
+            titleKey: 'testers.vibrationTester',
+            subtitleKey: 'testers.vibrationTesterHint',
+          ),
+          _TesterTile(
+            route: '/testers/torch',
+            icon: Icons.flashlight_on_outlined,
+            titleKey: 'testers.torchTester',
+            subtitleKey: 'testers.torchTesterHint',
+          ),
+          _TesterTile(
+            route: '/testers/speed',
+            icon: Icons.speed_outlined,
+            titleKey: 'testers.speedTest',
+            subtitleKey: 'testers.speedTestHint',
+          ),
         ],
       ),
     );

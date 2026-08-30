@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../../core/theme/theme_tokens.dart';
+import '../../../../core/ui/app_card.dart';
 
 import 'sensor_sampling_options.dart';
 
@@ -24,7 +25,7 @@ class SensorControlsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<ThemeTokensExtension>()!.tokens;
-    return Card(
+    return AppCard(
       child: Padding(
         padding: EdgeInsets.all(tokens.space2),
         child: Column(

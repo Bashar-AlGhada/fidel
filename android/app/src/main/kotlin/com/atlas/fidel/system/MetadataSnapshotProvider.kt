@@ -17,11 +17,21 @@ import android.os.HardwarePropertiesManager
 import android.os.PowerManager
 import android.os.StatFs
 import android.telephony.TelephonyManager
+import android.util.Log
 import android.view.WindowManager
 import java.io.File
 import java.util.UUID
+import kotlin.math.roundToInt
 
 class MetadataSnapshotProvider(private val context: Context) {
+  private companion object {
+    const val TAG = "MetadataSnapshotProvider"
+    const val SYSFS_THERMAL_PATH = "/sys/class/thermal"
+    const val MAX_THERMAL_ZONES = 32
+    const val MIN_ZONE_TEMP_C = -60.0
+    const val MAX_ZONE_TEMP_C = 200.0
+  }
+
   fun deviceSnapshot(): Map<String, Any?> {
     return mapOf(
       "manufacturer" to Build.MANUFACTURER,
@@ -121,63 +131,119 @@ class MetadataSnapshotProvider(private val context: Context) {
 
   fun camerasSnapshot(): Map<String, Any?> {
     val cm = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
-    val cameras = cm.cameraIdList.mapNotNull { cameraId ->
-      try {
-        val chars = cm.getCameraCharacteristics(cameraId)
-        val lensFacing = chars.get(CameraCharacteristics.LENS_FACING)
-        val lensFacingLabel = when (lensFacing) {
-          CameraCharacteristics.LENS_FACING_FRONT -> "front"
-          CameraCharacteristics.LENS_FACING_BACK -> "back"
-          CameraCharacteristics.LENS_FACING_EXTERNAL -> "external"
-          else -> "unknown"
-        }
-        val sensorOrientation = chars.get(CameraCharacteristics.SENSOR_ORIENTATION)
-        val hardwareLevel = chars.get(CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL)
-        val hasFlash = chars.get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
-        val focalLengths = chars.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS)?.map { it.toDouble() } ?: emptyList()
-        val apertures = chars.get(CameraCharacteristics.LENS_INFO_AVAILABLE_APERTURES)?.map { it.toDouble() } ?: emptyList()
-        val physicalCameraIds = if (Build.VERSION.SDK_INT >= 28) {
-          chars.physicalCameraIds.toList().sorted()
-        } else {
-          emptyList()
-        }
-        val fpsRanges = chars.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES)?.map { range ->
-          mapOf("min" to range.lower, "max" to range.upper)
-        } ?: emptyList()
+    val cameras = mutableListOf<Map<String, Any?>>()
 
-        val outputMap = chars.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
-        val formats = listOf(ImageFormat.JPEG, ImageFormat.YUV_420_888, ImageFormat.RAW_SENSOR)
-        val outputs = if (outputMap != null) {
-          formats.map { format ->
-            val sizes = outputMap.getOutputSizes(format)?.toList().orEmpty()
-              .sortedByDescending { it.width.toLong() * it.height.toLong() }
-              .take(16)
-              .map { size -> mapOf("w" to size.width, "h" to size.height) }
-            mapOf("format" to format, "sizes" to sizes)
-          }.filter { (it["sizes"] as List<*>).isNotEmpty() }
-        } else {
-          emptyList()
-        }
+    for (cameraId in cm.cameraIdList) {
+      val logicalEntry = cameraEntry(
+        cm,
+        cameraId,
+        deviceKind = "logical",
+        parentLogicalId = null,
+        fallbackLensFacing = null,
+      ) ?: continue
 
-        mapOf(
-          "cameraId" to cameraId,
-          "lensFacing" to lensFacing,
-          "lensFacingString" to lensFacingLabel,
-          "sensorOrientation" to sensorOrientation,
-          "hardwareLevel" to hardwareLevel,
-          "hasFlash" to hasFlash,
-          "focalLengthsMm" to focalLengths,
-          "apertures" to apertures,
-          "physicalCameraIds" to physicalCameraIds,
-          "fpsRanges" to fpsRanges,
-          "outputs" to outputs,
-        )
-      } catch (_: Exception) {
-        null
+      cameras.add(logicalEntry)
+
+      // Expand logical cameras into their exposed physical lenses.
+      if (Build.VERSION.SDK_INT >= 29) {
+        @Suppress("UNCHECKED_CAST")
+        val physicalIds = logicalEntry["physicalCameraIds"] as? List<String> ?: emptyList()
+        for (physicalId in physicalIds) {
+          val physicalEntry = runCatching {
+            cameraEntry(
+              cm,
+              physicalId,
+              deviceKind = "physical",
+              parentLogicalId = cameraId,
+              fallbackLensFacing = logicalEntry["lensFacing"] as? Int,
+            )
+          }.getOrNull()
+          if (physicalEntry != null) {
+            cameras.add(physicalEntry)
+          } else {
+            Log.w(TAG, "Skipping unreadable physical camera '$physicalId' of '$cameraId'")
+          }
+        }
       }
     }
 
-    return mapOf("cameras" to cameras)
+    return mapOf("cameras" to cameras.toList())
+  }
+
+  private fun cameraEntry(
+    cm: CameraManager,
+    cameraId: String,
+    deviceKind: String,
+    parentLogicalId: String?,
+    fallbackLensFacing: Int?,
+  ): Map<String, Any?>? {
+    return try {
+      val chars = cm.getCameraCharacteristics(cameraId)
+      val lensFacing = chars.get(CameraCharacteristics.LENS_FACING) ?: fallbackLensFacing
+      val lensFacingLabel = when (lensFacing) {
+        CameraCharacteristics.LENS_FACING_FRONT -> "front"
+        CameraCharacteristics.LENS_FACING_BACK -> "back"
+        CameraCharacteristics.LENS_FACING_EXTERNAL -> "external"
+        else -> "unknown"
+      }
+      val sensorOrientation = chars.get(CameraCharacteristics.SENSOR_ORIENTATION)
+      val hardwareLevel = chars.get(CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL)
+      val hasFlash = chars.get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
+      val focalLengths = chars.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS)?.map { it.toDouble() } ?: emptyList()
+      val apertures = chars.get(CameraCharacteristics.LENS_INFO_AVAILABLE_APERTURES)?.map { it.toDouble() } ?: emptyList()
+      val physicalCameraIds = if (Build.VERSION.SDK_INT >= 29) {
+        chars.physicalCameraIds.toList().sorted()
+      } else {
+        emptyList()
+      }
+      val fpsRanges = chars.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES)?.map { range ->
+        mapOf("min" to range.lower, "max" to range.upper)
+      } ?: emptyList()
+
+      val outputMap = chars.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
+      val formats = listOf(ImageFormat.JPEG, ImageFormat.YUV_420_888, ImageFormat.RAW_SENSOR)
+      val outputs = if (outputMap != null) {
+        formats.map { format ->
+          val sizes = outputMap.getOutputSizes(format)?.toList().orEmpty()
+            .sortedByDescending { it.width.toLong() * it.height.toLong() }
+            .take(16)
+            .map { size -> mapOf("w" to size.width, "h" to size.height) }
+          mapOf("format" to format, "sizes" to sizes)
+        }.filter { (it["sizes"] as List<*>).isNotEmpty() }
+      } else {
+        emptyList()
+      }
+
+      val physicalSize = chars.get(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE)
+      val pixelArray = chars.get(CameraCharacteristics.SENSOR_INFO_PIXEL_ARRAY_SIZE)
+
+      val entry = LinkedHashMap<String, Any?>()
+      entry["cameraId"] = cameraId
+      if (parentLogicalId != null) entry["parentLogicalId"] = parentLogicalId
+      entry["deviceKind"] = deviceKind
+      entry["lensFacing"] = lensFacing
+      entry["lensFacingString"] = lensFacingLabel
+      entry["sensorOrientation"] = sensorOrientation
+      entry["orientationDeg"] = sensorOrientation
+      entry["hardwareLevel"] = hardwareLevel
+      entry["hasFlash"] = hasFlash
+      entry["focalLengthsMm"] = focalLengths
+      entry["apertures"] = apertures
+      entry["aperturesF"] = apertures
+      entry["physicalSizeWidthMm"] = physicalSize?.width?.toDouble()
+      entry["physicalSizeHeightMm"] = physicalSize?.height?.toDouble()
+      entry["pixelCountX"] = pixelArray?.width
+      entry["pixelCountY"] = pixelArray?.height
+      entry["physicalCameraIds"] = physicalCameraIds
+      entry["fpsRanges"] = fpsRanges
+      entry["outputs"] = outputs
+      // Note: SENSOR_INFO_SENSOR_CALIBRATION_FACTOR is hidden (non-public)
+      // API, so the optional "sensorCalibration" key is always omitted.
+      entry
+    } catch (e: Exception) {
+      Log.w(TAG, "Failed to read characteristics for camera '$cameraId'", e)
+      null
+    }
   }
 
   fun securitySnapshot(): Map<String, Any?> {
@@ -311,8 +377,102 @@ class MetadataSnapshotProvider(private val context: Context) {
 
     return mapOf(
       "batteryTempC" to batteryTempC,
-      "cpuTempC" to cpuTempC,
+      // The privileged CPU reading needs DEVICE_POWER, which normal apps
+      // lack; fall back to the hottest CPU-labelled sysfs zone.
+      "cpuTempC" to (cpuTempC ?: hottestCpuZoneTempC()),
     )
+  }
+
+  /// Best-effort sysfs thermal zones as {type, rawType, tempC} maps,
+  /// hottest-first and capped at [MAX_THERMAL_ZONES]; never throws.
+  fun bestEffortThermalZones(): List<Map<String, Any?>> {
+    return try {
+      val zoneDirs = File(SYSFS_THERMAL_PATH)
+        .listFiles { file -> file.isDirectory && file.name.startsWith("thermal_zone") }
+        ?.sortedBy { it.name }
+        ?: return emptyList()
+
+      val seen = HashSet<String>()
+      val zones = mutableListOf<Map<String, Any?>>()
+      for (dir in zoneDirs) {
+        val rawType = readSysfsText(File(dir, "type"))?.trim() ?: continue
+        if (rawType.isEmpty()) continue
+        val tempMilliC = readSysfsText(File(dir, "temp"))?.trim()?.toLongOrNull() ?: continue
+        val tempC = tempMilliC / 1000.0
+        if (tempC < MIN_ZONE_TEMP_C || tempC > MAX_ZONE_TEMP_C) continue
+
+        // Rounded to 1 decimal so duplicate sensors collapse deterministically.
+        val roundedC = (tempC * 10).roundToInt() / 10.0
+        if (!seen.add("$rawType:$roundedC")) continue
+
+        zones.add(
+          mapOf(
+            "type" to humanizeThermalZoneType(rawType),
+            "rawType" to rawType,
+            "tempC" to roundedC,
+          )
+        )
+      }
+
+      zones.sortByDescending { it["tempC"] as Double }
+      zones.take(MAX_THERMAL_ZONES)
+    } catch (_: Exception) {
+      emptyList()
+    }
+  }
+
+  private fun hottestCpuZoneTempC(): Double? {
+    return try {
+      bestEffortThermalZones()
+        .filter { (it["rawType"] as? String)?.startsWith("cpu") == true }
+        .mapNotNull { it["tempC"] as? Double }
+        .maxOrNull()
+    } catch (_: Exception) {
+      null
+    }
+  }
+
+  private fun readSysfsText(file: File): String? {
+    return try {
+      if (file.isFile) file.readText() else null
+    } catch (_: Exception) {
+      null
+    }
+  }
+
+  private fun humanizeThermalZoneType(rawType: String): String {
+    var label = rawType.trim().lowercase()
+    while (label.isNotEmpty()) {
+      when {
+        label.endsWith("thermal_zone") -> label = label.removeSuffix("thermal_zone")
+        label.endsWith("_zone") -> label = label.removeSuffix("_zone")
+        label.endsWith("-zone") -> label = label.removeSuffix("-zone")
+        label.endsWith("zone") -> label = label.removeSuffix("zone")
+        else -> break
+      }
+    }
+    label = label.trim('_', '-', '.', ' ')
+    if (label.isEmpty()) return titleCaseLabel(rawType.trim())
+
+    return when {
+      label.startsWith("cpu") -> "CPU"
+      label.startsWith("gpu") -> "GPU"
+      label.startsWith("battery") || label.startsWith("batt") -> "Battery"
+      label.startsWith("usb") -> "USB port"
+      label.startsWith("wifi") || label.startsWith("wlan") -> "Wi-Fi"
+      label.startsWith("modem") -> "Modem"
+      label.startsWith("skin") -> "Skin"
+      label.startsWith("soc") -> "SoC"
+      label.startsWith("cam") -> "Camera"
+      label.startsWith("display") -> "Display"
+      else -> titleCaseLabel(rawType.trim())
+    }
+  }
+
+  private fun titleCaseLabel(value: String): String {
+    return value.split('_', '-', '.')
+      .filter { it.isNotBlank() }
+      .joinToString(" ") { word -> word.lowercase().replaceFirstChar { char -> char.uppercaseChar() } }
   }
 
   private fun isDeviceSecure(): Boolean {

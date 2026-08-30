@@ -1,123 +1,128 @@
 import 'package:flutter/material.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
-import 'package:fidel/features/testers/presentation/screen_tester_page.dart';
+import 'package:go_router/go_router.dart';
 import 'package:fidel/core/localization/translations.dart';
+import 'package:fidel/core/theme/app_themes.dart';
+import 'package:fidel/features/testers/presentation/screen_tester_page.dart';
 
 void main() {
   group('ScreenTesterPage', () {
-    testWidgets('renders with initial color', (WidgetTester tester) async {
+    testWidgets('renders solid mode with an initial color', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
-        ProviderScope(
-          child: GetMaterialApp(
-            translations: AppTranslations(),
-            locale: const Locale('en', 'US'),
-            home: const ScreenTesterPage(),
-          ),
+        GetMaterialApp(
+          translations: AppTranslations(),
+          locale: const Locale('en', 'US'),
+          theme: buildLightTheme(),
+          home: const ScreenTesterPage(),
         ),
       );
+      await tester.pumpAndSettle();
 
-      // Page should render
       expect(find.byType(ScreenTesterPage), findsOneWidget);
 
-      // Should have a ColoredBox with color
-      final coloredBox = tester.widget<ColoredBox>(
-        find
-            .descendant(
-              of: find.byType(ScreenTesterPage),
-              matching: find.byType(ColoredBox),
-            )
-            .first,
+      // Solid mode paints a ColoredBox behind the tap-to-cycle hint.
+      final colored = tester.widget<ColoredBox>(
+        find.descendant(
+          of: find.byType(ScreenTesterPage),
+          matching: find.byType(ColoredBox),
+        ).first,
       );
-
-      expect(coloredBox.color, isNotNull);
+      expect(colored.color, isNotNull);
     });
 
     testWidgets('cycles through colors on tap', (WidgetTester tester) async {
       await tester.pumpWidget(
-        ProviderScope(
-          child: GetMaterialApp(
-            translations: AppTranslations(),
-            locale: const Locale('en', 'US'),
-            home: const ScreenTesterPage(),
-          ),
+        GetMaterialApp(
+          translations: AppTranslations(),
+          locale: const Locale('en', 'US'),
+          theme: buildLightTheme(),
+          home: const ScreenTesterPage(),
         ),
       );
+      await tester.pumpAndSettle();
 
-      // Get initial color
-      ColoredBox coloredBox = tester.widget<ColoredBox>(
+      final initialColor = tester.widget<ColoredBox>(
+        find.descendant(
+          of: find.byType(ScreenTesterPage),
+          matching: find.byType(ColoredBox),
+        ).first,
+      ).color;
+
+      // Tap the solid surface (the GestureDetector wrapping the ColoredBox).
+      await tester.tap(
         find
-            .descendant(
-              of: find.byType(ScreenTesterPage),
-              matching: find.byType(ColoredBox),
+            .ancestor(
+              of: find.byType(ColoredBox),
+              matching: find.byType(GestureDetector),
             )
             .first,
       );
-      final initialColor = coloredBox.color;
+      await tester.pumpAndSettle();
 
-      // Tap to change color
-      await tester.tap(find.byType(GestureDetector).first);
-      await tester.pump();
+      final newColor = tester.widget<ColoredBox>(
+        find.descendant(
+          of: find.byType(ScreenTesterPage),
+          matching: find.byType(ColoredBox),
+        ).first,
+      ).color;
 
-      // Get new color
-      coloredBox = tester.widget<ColoredBox>(
-        find
-            .descendant(
-              of: find.byType(ScreenTesterPage),
-              matching: find.byType(ColoredBox),
-            )
-            .first,
-      );
-      final newColor = coloredBox.color;
-
-      // Color should have changed
       expect(newColor, isNot(equals(initialColor)));
     });
 
-    testWidgets('has back button in app bar that pops route', (
+    testWidgets('has a back button that pops the route', (
       WidgetTester tester,
     ) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          child: GetMaterialApp(
-            translations: AppTranslations(),
-            locale: const Locale('en', 'US'),
-            home: Builder(
-              builder: (context) => Scaffold(
-                body: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const ScreenTesterPage(),
-                      ),
-                    );
-                  },
-                  child: const Text('Open'),
-                ),
+      // The page's back button relies on GoRouter (context.pop), so it must
+      // be reached through a GoRouter just like in the real app.
+      final router = GoRouter(
+        initialLocation: '/',
+        routes: [
+          GoRoute(
+            path: '/',
+            builder: (context, state) => Scaffold(
+              body: ElevatedButton(
+                onPressed: () => context.push('/screen'),
+                child: const Text('Open'),
               ),
             ),
           ),
-        ),
+          GoRoute(
+            path: '/screen',
+            builder: (context, state) => const ScreenTesterPage(),
+          ),
+        ],
       );
 
-      // Open the screen tester
+      await tester.pumpWidget(
+        GetMaterialApp(
+          translations: AppTranslations(),
+          locale: const Locale('en', 'US'),
+          theme: buildLightTheme(),
+          home: MaterialApp.router(
+            routerConfig: router,
+            theme: buildLightTheme(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
-      // Should have app bar
-      expect(find.byType(AppBar), findsOneWidget);
-
-      // Tap back button (automatically added by Flutter)
+      // The page uses an immersive chrome with a back IconButton whose
+      // tooltip is the Material default (en_US -> "Back").
       final backButton = find.byTooltip('Back');
       expect(backButton, findsOneWidget);
 
       await tester.tap(backButton);
       await tester.pumpAndSettle();
 
-      // Should be back to original page
-      expect(find.text('Open'), findsOneWidget);
+      // Popping returns to the previous route: the tester page is gone.
       expect(find.byType(ScreenTesterPage), findsNothing);
+      expect(find.text('Open'), findsWidgets);
     });
   });
 }

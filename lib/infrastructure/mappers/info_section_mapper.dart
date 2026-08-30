@@ -90,6 +90,14 @@ class InfoSectionMapper {
         _item('battery.currentNowUa', data['currentNowUa']),
         _item('battery.currentAverageUa', data['currentAverageUa']),
         _item('battery.energyCounterNwh', data['energyCounterNwh']),
+        // Additive snapshot fields: absent keys produce no row at all
+        // instead of an unavailable placeholder.
+        ..._presentItems([
+          ('battery.capacityMah', data['capacityMah']),
+          ('battery.chargingPowerW', data['watts']),
+          ('battery.plugSource', data['plugSource']),
+          ('battery.averageCurrentUa', data['averageCurrentMicroAmps']),
+        ]),
       ],
     );
   }
@@ -163,7 +171,14 @@ class InfoSectionMapper {
       items: [
         _item('thermal.timestampMs', data['timestampMs']),
         _item('thermal.thermalStatus', data['thermalStatus']),
+        _item(
+          'thermal.thermalStatusLabel',
+          _thermalStatusLabel(data['thermalStatus']),
+        ),
         _item('thermal.temperatures', temperatures),
+        // Structured zone list serialized as JSON so the page layer
+        // decides rendering, mirroring 'thermal.temperatures'.
+        _item('thermal.zones', _normalizeThermalZones(data['zones'])),
       ],
     );
   }
@@ -188,6 +203,24 @@ class InfoSectionMapper {
       return InfoItemEntity.unavailable(labelKey: labelKey);
     }
     return InfoItemEntity.text(labelKey: labelKey, value: text);
+  }
+
+  /// Like [_item], but absent/empty values yield no row at all — used
+  /// for additive snapshot fields that may not exist on every device.
+  InfoItemEntity? _itemIfPresent(String labelKey, Object? value) {
+    if (value == null) return null;
+    final text = _stringify(value);
+    if (text == null || text.isEmpty) return null;
+    return InfoItemEntity.text(labelKey: labelKey, value: text);
+  }
+
+  List<InfoItemEntity> _presentItems(List<(String, Object?)> entries) {
+    final items = <InfoItemEntity>[];
+    for (final (labelKey, value) in entries) {
+      final item = _itemIfPresent(labelKey, value);
+      if (item != null) items.add(item);
+    }
+    return items;
   }
 
   String? _stringify(Object value) {
@@ -227,6 +260,46 @@ class InfoSectionMapper {
     final map = raw.cast<String, dynamic>();
     final rows = _thermalRowsFromMap(map);
     return rows.isEmpty ? null : rows;
+  }
+
+  /// Normalizes the additive `zones` payload — a list of
+  /// `{name, rawType, tempC}` — into the same row shape as
+  /// `_normalizeThermalTemperatures` (`{name, type, valueC}`).
+  List<Map<String, dynamic>>? _normalizeThermalZones(Object? raw) {
+    if (raw is! List) return null;
+    final rows = raw
+        .whereType<Map>()
+        .map((entry) {
+          final zone = entry.cast<String, dynamic>();
+          return _normalizeThermalRow(<String, dynamic>{
+            'name': zone['name'],
+            'type': zone['rawType'] ?? zone['type'],
+            'valueC': zone['tempC'] ?? zone['valueC'],
+          });
+        })
+        .whereType<Map<String, dynamic>>()
+        .toList(growable: false);
+    return rows.isEmpty ? null : rows;
+  }
+
+  /// Severity words for PowerManager.THERMAL_STATUS_*, indexed by the
+  /// status int (0 none … 6 shutdown); absent/out-of-range yields null.
+  static const List<String> _thermalStatusLabels = [
+    'none',
+    'light',
+    'moderate',
+    'severe',
+    'critical',
+    'emergency',
+    'shutdown',
+  ];
+
+  String? _thermalStatusLabel(Object? raw) {
+    final status = raw is int ? raw : (raw is num ? raw.toInt() : null);
+    if (status == null || status < 0 || status >= _thermalStatusLabels.length) {
+      return null;
+    }
+    return _thermalStatusLabels[status];
   }
 
   List<Map<String, dynamic>> _thermalRowsFromMap(Map<String, dynamic> map) {
